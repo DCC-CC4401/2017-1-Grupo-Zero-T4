@@ -1,143 +1,107 @@
-import datetime
-from django.shortcuts import render
-from django.utils import timezone
-from .forms import LoginForm
-from .forms import GestionProductosForm
-from .forms import editarProductosForm
-from .models import Usuario
-from .models import Comida
-from .models import Favoritos
-# from .models import Imagen
-from .models import Transacciones
+import time
+
+import simplejson
+from django.core.files.storage import default_storage
 from django.db.models import Count
 from django.db.models import Sum
 from django.http import HttpResponse
-import simplejson
 from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
-from multiselectfield import MultiSelectField
-from django.core.files.storage import default_storage
+
+from .forms import GestionProductosForm
+from .forms import LoginForm
+from .forms import editarProductosForm
+from .models import *
 
 
 # Create your views here.
 def index(request):
     vendedores = []
     # lista de vendedores
-    for p in Usuario.objects.raw('SELECT * FROM usuario'):
-        if p.tipo == 2 or p.tipo == 3:
-            vendedores.append(p.id)
-    vendedoresJson = simplejson.dumps(vendedores)
+    for v in Usuario.objects.all():
+        if (v.tipo == 2 or v.tipo == 3) and v.activo:
+            vendedores.append(v.id)
+
     # actualizar vendedores fijos
-    for p in Usuario.objects.raw('SELECT * FROM usuario'):
-        if p.tipo == 2:
-            hi = p.horarioIni
-            hf = p.horarioFin
-            horai = hi[:2]
-            horaf = hf[:2]
-            mini = hi[3:5]
-            minf = hf[3:5]
-            print(datetime.datetime.now().time())
-            tiempo = str(datetime.datetime.now().time())
-            print(tiempo)
-            hora = tiempo[:2]
-            minutos = tiempo[3:5]
-            estado = ""
-            if horaf >= hora and hora >= horai:
-                if horai == hora:
-                    if minf >= minutos and minutos >= mini:
-                        estado = "activo"
-                    else:
-                        estado = "inactivo"
-                elif horaf == hora:
-                    if minf >= minutos and minutos >= mini:
-                        estado = "activo"
-                    else:
-                        estado = "inactivo"
-                else:
-                    estado = "activo"
+    for v in Vendedor.objects.all():
+        if v.tipo == 1:
+            vf = v.vendedorfijo
+            hora_local = time.localtime()
+            hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
+            if vf.hora_apertura <= hora_local <= vf.hora_clausura:
+                v.activo = 1
             else:
-                estado = "inactivo"
-            if estado == "activo":
-                Usuario.objects.filter(nombre=p.nombre).update(activo=1)
-            else:
-                Usuario.objects.filter(nombre=p.nombre).update(activo=0)
+                v.activo = 0
+            v.save()
 
-    vendedoresJson = simplejson.dumps(vendedores)
+    vendedores_json = simplejson.dumps(vendedores)
 
-    return render(request, 'main/baseAlumno-sinLogin.html', {"vendedores": vendedoresJson})
+    return render(request, 'main/baseAlumno-sinLogin.html', {"vendedores": vendedores_json})
 
 
 def login(request):
     return render(request, 'main/login.html', {})
 
 
-def fijoDashboard(request):
+def fijo_dashboard(request):
     print(request.POST)
-    id = request.POST.get("fijoId")
-    # id = str(id)
+    fijo_id = request.POST.get("fijoId")
 
     # transacciones hechas por hoy
-    transaccionesDiarias = Transacciones.objects.filter(idVendedor=id).values('fecha').annotate(conteo=Count('fecha'))
-    temp_transaccionesDiarias = list(transaccionesDiarias)
-    transaccionesDiariasArr = []
-    for element in temp_transaccionesDiarias:
-        aux = []
-        aux.append(element['fecha'])
-        aux.append(element['conteo'])
-        transaccionesDiariasArr.append(aux)
-    transaccionesDiariasArr = simplejson.dumps(transaccionesDiariasArr)
-    # print(transaccionesDiariasArr)
+    v = Vendedor.objects.get(id=fijo_id)
+    transacciones_diarias = Transacciones.objects.filter(vendedor=v).values('fecha').annotate(conteo=Count('fecha'))
+    temp_transacciones_diarias = list(transacciones_diarias)
+    transacciones_diarias_arr = []
+    for element in temp_transacciones_diarias:
+        aux = [element['fecha'], element['conteo']]
+        transacciones_diarias_arr.append(aux)
+
+    transacciones_diarias_arr = simplejson.dumps(transacciones_diarias_arr)
 
     # ganancias de hoy
-    gananciasDiarias = Transacciones.objects.filter(idVendedor=id).values('fecha').annotate(ganancia=Sum('precio'))
-    temp_gananciasDiarias = list(gananciasDiarias)
-    gananciasDiariasArr = []
-    for element in temp_gananciasDiarias:
-        aux = []
-        aux.append(element['fecha'])
-        aux.append(element['ganancia'])
-        # print("AUX")
-        # print(aux)
-        gananciasDiariasArr.append(aux)
-    gananciasDiariasArr = simplejson.dumps(gananciasDiariasArr)
-    # print(gananciasDiariasArr)
-
+    ganancias_diarias = Transacciones.objects.filter(vendedor=v).values('fecha').annotate(ganancia=Sum('precio'))
+    temp_ganancias_diarias = list(ganancias_diarias)
+    ganancias_diarias_arr = []
+    for element in temp_ganancias_diarias:
+        aux = [element['fecha'], element['ganancia']]
+        ganancias_diarias_arr.append(aux)
+    ganancias_diarias_arr = simplejson.dumps(ganancias_diarias_arr)
 
     # todos los productos del vendedor
-    productos = Comida.objects.filter(idVendedor=id).values('nombre', 'precio')
+    productos = Comida.objects.filter(vendedor=v).values('nombre', 'precio')
     temp_productos = list(productos)
-    productosArr = []
-    productosPrecioArr = []
+    productos_arr = []
+    productos_precio_arr = []
+
     for element in temp_productos:
-        aux = []
-        productosArr.append(element['nombre'])
-        aux.append(element['nombre'])
-        aux.append(element['precio'])
-        productosPrecioArr.append(aux)
-    productosArr = simplejson.dumps(productosArr)
-    productosPrecioArr = simplejson.dumps(productosPrecioArr)
-    print(productosPrecioArr)
+        productos_arr.append(element['nombre'])
+
+        aux = [element['nombre'], element['precio']]
+        productos_precio_arr.append(aux)
+
+    productos_arr = simplejson.dumps(productos_arr)
+    productos_precio_arr = simplejson.dumps(productos_precio_arr)
 
     # productos vendidos hoy con su cantidad respectiva
-    fechaHoy = str(timezone.now()).split(' ', 1)[0]
-    productosHoy = Transacciones.objects.filter(idVendedor=id, fecha=fechaHoy).values('nombreComida').annotate(
+    fecha_hoy = datetime.date.today()
+    productos_hoy = Transacciones.objects.filter(vendedor=v, fecha=fecha_hoy).values('nombreComida').annotate(
         conteo=Count('nombreComida'))
-    temp_productosHoy = list(productosHoy)
-    productosHoyArr = []
-    for element in temp_productosHoy:
-        aux = []
-        aux.append(element['nombreComida'])
-        aux.append(element['conteo'])
-        productosHoyArr.append(aux)
-    productosHoyArr = simplejson.dumps(productosHoyArr)
-    # print(productosHoyArr)
+    temp_productos_hoy = list(productos_hoy)
+    productos_hoy_arr = []
 
+    for element in temp_productos_hoy:
+        productos_hoy_arr.append([element['nombreComida'], element['conteo']])
+    productos_hoy_arr = simplejson.dumps(productos_hoy_arr)
 
     return render(request, 'main/fijoDashboard.html',
-                  {"transacciones": transaccionesDiariasArr, "ganancias": gananciasDiariasArr,
-                   "productos": productosArr, "productosHoy": productosHoyArr, "productosPrecio": productosPrecioArr})
+                  {"transacciones": transacciones_diarias_arr, "ganancias": ganancias_diarias_arr,
+                   "productos": productos_arr, "productos_hoy": productos_hoy_arr,
+                   "productosPrecio": productos_precio_arr})
 
 
+# TODO: corregir vistas para usar modelos nuevos
 def ambulanteDashboard(request):
     print(request.POST)
     id = request.POST.get("ambulanteId")
@@ -843,8 +807,8 @@ def cambiarFavorito(request):
             agregar = request.GET.get('agregar')
             if agregar == "si":
                 nuevoFavorito = Favoritos()
-                nuevoFavorito.idAlumno = request.session['id']
-                nuevoFavorito.idVendedor = favorito
+                nuevoFavorito.alumno = request.session['id']
+                nuevoFavorito.vendedor = favorito
                 nuevoFavorito.save()
                 respuesta = {"respuesta": "si"}
             else:
@@ -950,13 +914,13 @@ def editarUsuarioAdmin(request):
         userID = request.GET.get('userID')
 
         if (nombre != None):
-            print ("nombre:" + nombre)
+            print("nombre:" + nombre)
         if (contraseña != None):
-            print ("contraseña:" + contraseña)
+            print("contraseña:" + contraseña)
         if (email != None):
-            print ("email:" + email)
+            print("email:" + email)
         if (avatar != None):
-            print ("avatar:" + avatar)
+            print("avatar:" + avatar)
         if (userID != None):
             print("id:" + userID)
         if email != None:
@@ -994,15 +958,15 @@ def editarUsuario(request):
 
         nuevaListaFormasDePago = ""
         if (nombre != None):
-            print ("nombre:" + nombre)
+            print("nombre:" + nombre)
         if (contraseña != None):
-            print ("contraseña:" + contraseña)
+            print("contraseña:" + contraseña)
         if (tipo != None):
-            print ("tipo:" + tipo)
+            print("tipo:" + tipo)
         if (email != None):
-            print ("email:" + email)
+            print("email:" + email)
         if (avatar != None):
-            print ("avatar:" + avatar)
+            print("avatar:" + avatar)
         if (horaIni != None):
             print("horaIni:" + horaIni)
         if (horaFin != None):
