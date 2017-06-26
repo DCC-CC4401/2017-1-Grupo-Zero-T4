@@ -112,7 +112,7 @@ class Transacciones(models.Model):
 
     nombreComida = models.CharField(max_length=200, blank=True, null=True)
     precio = models.IntegerField()
-    fecha = models.DateField(default=datetime.time.today())
+    fecha = models.DateField(default=datetime.date.today())
 
     def __str__(self):
         return "%s: %s-%i" % (str(self.vendedor), self.nombreComida, self.precio)

@@ -12,11 +12,11 @@ urlpatterns = [
     url(r'^register/', views.register, name='register'),
     url(r'^loggedin/', views.loggedin, name='loggedin'),
     url(r'^productoReq/', views.productoReq, name='productoReq'),
-    url(r'^vistaVendedorPorAlumno/', views.vistaVendedorPorAlumno, name='vistaVendedorPorAlumno'),
+    url(r'^vistaVendedorPorAlumno/', views.vista_vendedor_por_alumno, name='vistaVendedorPorAlumno'),
     url(r'^cambiarEstado/$', views.cambiarEstado,name='cambiarEstado'),
     url(r'^editarVendedor/$', views.editarVendedor,name='editarVendedor'),
     url(r'^editarDatos/$', views.editarDatos,name='editarDatos'),
-    url(r'^inicioAlumno/', views.inicioAlumno, name='inicioAlumno'),
+    url(r'^inicioAlumno/', views.inicio_alumno, name='inicioAlumno'),
     url(r'^borrarUsuario/', views.borrarUsuario, name='borrarUsuario'),
     url(r'^borrarProducto/', views.borrarProducto, name='borrarProducto'),
     url(r'^editarProducto/', views.editarProducto, name='editarProducto'),
@@ -35,7 +35,7 @@ urlpatterns = [
     url(r'^loginAdmin/$', views.loginAdmin, name='loginAdmin'),
     url(r'^createTransaction/$', views.createTransaction, name='createTransaction'),
     url(r'^fijoDashboard/$', views.fijo_dashboard, name='fijoDashboard'),
-    url(r'^ambulanteDashboard/$', views.ambulanteDashboard, name='ambulanteDashboard'),
+    url(r'^ambulanteDashboard/$', views.ambulante_dashboard, name='ambulanteDashboard'),
 
 
 ]
