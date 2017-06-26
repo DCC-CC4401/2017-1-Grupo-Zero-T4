@@ -759,19 +759,67 @@ def redirigir_editar(id_vendedor, request):
 
 def inicio_alumno(request):
     id_user = request.session['id']
-
-    vendedores = []
-    avatar = None
+    avatarUser = None
     for p in Usuario.objects.all():
         if p.id == id_user:
-            avatar = p.avatar
-        if p.tipo == 2 or p.tipo == 3:
-            vendedores.append(p.id)
-    vendedores_json = simplejson.dumps(vendedores)
+            avatarUser = p.avatar
+
+    vendedores_id = []
+    vendedores_tipo = []
+    vendedores_nombre = []
+    vendedores_avatar = []
+    vendedores_pago = []
+    vendedores_ini = []
+    vendedores_fin = []
+    vendedores_ubicacion = []
+    # lista de vendedores
+    i = 0
+    for v in Vendedor.objects.all():
+        ini = ""
+        fin = ""
+        if v.tipo == 2 and v.activo:
+            vendedores_id.append(v.user.id)
+            vendedores_tipo.append(v.tipo)
+            vendedores_nombre.append(v.user.user.username)
+            vendedores_avatar.append(str(v.user.avatar))
+            vendedores_pago.append(v.formasDePago)
+            vendedores_ubicacion.append(v.ubicacion)
+            vendedores_ini.append(ini)
+            vendedores_fin.append(fin)
+        if v.tipo == 1:
+            vf = v.vendedorfijo
+            hora_local = time.localtime()
+            hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
+            ini = vf.horarioIni.strftime("%H:%M")
+            fin = vf.horarioFin.strftime("%H:%M")
+            vendedores_ini.append(ini)
+            vendedores_fin.append(fin)
+            if vf.horarioIni <= hora_local <= vf.horarioFin:
+                v.activo = 1
+                vendedores_id.append(v.user.id)
+                vendedores_tipo.append(v.tipo)
+                vendedores_nombre.append(v.user.user.username)
+                vendedores_avatar.append(str(v.user.avatar))
+                vendedores_pago.append(v.formasDePago)
+                vendedores_ubicacion.append(v.ubicacion)
+            else:
+                v.activo = 0
+            v.save()
+        i = i + 1
+
+    nombre = simplejson.dumps(vendedores_nombre)
+    tipo = simplejson.dumps(vendedores_tipo)
+    ids = simplejson.dumps(vendedores_id)
+    avatar = simplejson.dumps(vendedores_avatar)
+    formas_de_pago = simplejson.dumps(vendedores_pago)
+    horario_ini = simplejson.dumps(vendedores_ini)
+    horario_fin = simplejson.dumps(vendedores_fin)
+    ubicacion = simplejson.dumps(vendedores_ubicacion)
 
     return render(request, 'main/baseAlumno.html',
-                  {"id": id_user, "vendedores": vendedores_json, "avatarSesion": avatar,
-                   "nombresesion": request.session['nombre']})
+                  {"userid": id_user, "avatarSesion": avatarUser,
+                   "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": ids, "avatar": avatar, "formasDePago": formas_de_pago,
+                   "horarioIni": horario_ini, "horarioFin": horario_fin, "ubicacion": ubicacion})
 
 
 @csrf_exempt
