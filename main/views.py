@@ -16,27 +16,59 @@ from .models import *
 
 
 def index(request):
-    vendedores = []
+    vendedoresId = []
+    vendedoresTipo = []
+    vendedoresNombre = []
+    vendedoresAvatar = []
+    vendedoresPago = []
+    vendedoresIni = []
+    vendedoresFin = []
+    vendedoresUbicacion = []
     # lista de vendedores
-    for v in Usuario.objects.all():
-        if (v.tipo == 2 or v.tipo == 3) and v.activo:
-            vendedores.append(v.id)
-
-    # actualizar vendedores fijos
+    i = 0
     for v in Vendedor.objects.all():
+        print(i)
+        Ini = ""
+        Fin = ""
+        if ((v.tipo==2) & (v.activo)):
+            vendedoresId.append(v.user.id)
+            vendedoresTipo.append(v.tipo)
+            vendedoresNombre.append(v.user.user.username)
+            vendedoresAvatar.append(str(v.user.avatar))
+            vendedoresPago.append(v.formasDePago)
+            vendedoresUbicacion.append(v.ubicacion)
         if v.tipo == 1:
             vf = v.vendedorfijo
             hora_local = time.localtime()
             hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
-            if vf.hora_apertura <= hora_local <= vf.hora_clausura:
+            ini = (str(vf.horarioIni))
+            fin = (str(vf.horarioFin))
+            if vf.horarioIni <= hora_local <= vf.horarioFin:
                 v.activo = 1
+                vendedoresId.append(v.user.id)
+                vendedoresTipo.append(v.tipo)
+                vendedoresNombre.append(v.user.user.username)
+                vendedoresAvatar.append(str(v.user.avatar))
+                vendedoresPago.append(v.formasDePago)
+                vendedoresUbicacion.append(v.ubicacion)
             else:
                 v.activo = 0
             v.save()
+        i=i+1
+        vendedoresIni.append(Ini)
+        vendedoresFin.append(Fin)
 
-    vendedores_json = simplejson.dumps(vendedores)
+    nombre = simplejson.dumps(vendedoresNombre)
+    tipo = simplejson.dumps(vendedoresTipo)
+    id = simplejson.dumps(vendedoresId)
+    avatar = simplejson.dumps(vendedoresAvatar)
+    formasDePago = simplejson.dumps(vendedoresPago)
+    horarioIni = simplejson.dumps(vendedoresIni)
+    horarioFin = simplejson.dumps(vendedoresFin)
+    ubicacion = simplejson.dumps(vendedoresUbicacion)
 
-    return render(request, 'main/baseAlumno-sinLogin.html', {"vendedores": vendedores_json})
+
+    return render(request, 'main/baseAlumno-sinLogin.html', {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "formasDePago": formasDePago, "horarioIni": horarioIni, "horarioFin": horarioFin, "ubicacion": ubicacion})
 
 
 def login(request):

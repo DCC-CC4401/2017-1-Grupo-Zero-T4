@@ -12,7 +12,6 @@
 
     <!--Import jQuery before materialize.js-->
     <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
-    <script type="text/javascript" src="../static/fb.js"></script>
 
     <!-- Compiled and minified JavaScript -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/js/materialize.min.js"></script>
@@ -53,60 +52,72 @@
                 zoom: 19,
                 center: beau850
             });
-            infoWindow = new google.maps.InfoWindow;
+            var nombre = {{ nombre|safe }}
+            var tipo = {{ tipo|safe }}
+            var id = {{ id|safe }}
+            var avatar = {{ avatar|safe }}
+            var formasDePago = {{ formasDePago|safe }}
+            var horarioIni = {{ horarioIni|safe }}
+            var horarioFin = {{ horarioFin|safe }}
+            var ubicacion = {{ ubicacion|safe }};
+            console.log(tipo)
 
-            var info = '<div id="content">'+
-                '<div id="siteNotice">'+
-                '</div>'+
-                '<div><p style="float: left;"><img src="../static/img/AvatarVendedor4.png" width="50" hspace="10"></p>'    +
-                '<h4>Casino</h4></div>'+
-                '<p style="color:#029500;"> Disponible</p>' +
-                '<div id="bodyContent">'+
-                '<p>Vendedores de almuerzo</p>'+
-                '<p><i>Menú de hoy:</i> Lasaña</p>' +
-                '<p><i>Formas de pago:</i> Efectivo, Tarjeta de Crédito o Débito, Junaeb</p>' +
-                '<p><i>Horario:</i> 12:30-14:15</p>' +
-                '<p><input type="checkbox" class="filled-in" id="test" checked="checked" />' +
-                '<label for="test">Favorito</label></p>' +
-                '<p style="text-align: right;">Ver detalles»</p>' +
-                '</div>'+
-                '</div>';
+            for (var i=0; i<nombre.length; ++i) {
+                infoWindow = new google.maps.InfoWindow;
+                var pagos = '<p><i>Formas de pago:</i> ';
+                for(var pagoRaw in formasDePago[i]) {
+                    var pagoStr;
+                    pago = parseInt(pagoRaw)
+                    if(pago==1){
+                        pagoStr = "Efectivo"
+                    }
+                    else if(pago==2){
+                        pagoStr = 'Tarjeta de Crédito'
+                    }
+                    else if(pago==3){
+                        pagoStr = 'Tarjeta de Débito'
+                    }
+                    else{
+                        pagoStr = 'Tarjeta Junaeb'
+                    }
+                    pagos = pagos + pagoStr + ", ";
+                }
+                pagos = pagos + "</p>"
+                var posicion = ubicacion[i].split(";")
+                var info = '<div id="content">' +
+                    '<div id="siteNotice">' +
+                    '</div>' +
+                    '<div><p style="float: left;"><img src="../static/media/' + avatar[i] +'" width="60" hspace="10"></p>' +
+                    '<h4>' + nombre[i] + '</h4></div>' +
+                    '<p style="color:#029500;"> Disponible</p>' +
+                    '<div id="bodyContent">' +
+                    '<p>Vendedores de almuerzo</p>' +
+                    '<p><i>Menú de hoy:</i> Lasaña</p>' +
+                    pagos;
+                if(tipo[i] == parseInt(1)){
+                    info = info + '<p><i>Horario:</i> ' + horarioIni[i] + " - " + horarioFin[i];
+                }
 
-            var infoVendedor = new google.maps.InfoWindow({
-                content: info,
-                maxWidth: 400
-            });
+                info = info +'<p style="text-align: right;">Ver detalles»</p>' +
+                    '</div>' +
+                    '</div>';
+                setMarker(info, map, parseInt(posicion[0]), parseInt(posicion[1]))
 
+                /*var infoVendedor = new google.maps.InfoWindow({
+                    content: info,
+                    maxWidth: 400
+                });
 
-            var marker = new google.maps.Marker({
-                position: beau850,
-                map: map
-            });
+                var marker3 = new google.maps.Marker({
+                    position: {lat: parseInt(posicion[0]), lng: parseInt(posicion[1])},
+                    map: map,
+                    icon: '../static/img/star.png'
+                });
 
-            var marker2 = new google.maps.Marker({
-                position: {lat: -33.457885, lng: -70.663808},
-                map: map
-            });
-
-            var marker3 = new google.maps.Marker({
-                position: {lat: -33.458085, lng: -70.663808},
-                map: map,
-                icon: '../static/img/star.png'
-            });
-
-            var marker4 = new google.maps.Marker({
-                position: {lat: -33.458158, lng: -70.663678},
-                map: map
-            });
-
-            var marker5 = new google.maps.Marker({
-                position: {lat: -33.457658, lng: -70.663778},
-                map: map
-            });
-
-            marker3.addListener('click', function() {
-                infoVendedor.open(map, marker3);
-            });
+                marker3.addListener('mouseover', function () {
+                    infoVendedor.open(map, marker3);
+                });*/
+            }
 
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(function(position) {
@@ -124,6 +135,20 @@
             }
         }
 
+        function setMarker(info, map, lat, lng){
+            var marker3 = new google.maps.Marker({
+                position: {lat: lat, lng: lng},
+                map: map
+            });
+            marker3.info = new google.maps.InfoWindow({
+                content: info,
+                maxWidth: 400
+            });
+            marker3.addListener('click', function () {
+                marker3.info.open(map, marker3);
+            });
+        }
+
         function handleLocationError(browserHasGeolocation, infoWindow, pos) {
             infoWindow.setPosition(pos);
             infoWindow.setContent(browserHasGeolocation ?
@@ -133,7 +158,7 @@
         }
     </script>
     <script async defer
-            src="https://maps.googleapis.com/maps/api/js?key=KEY&callback=initMap">
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpv6y7hZkG3LxrBI0yfB16nh6NlSfv46M&callback=initMap">
     </script>
     <!--main>
     <div class="container">
