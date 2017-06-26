@@ -79,14 +79,14 @@ def login_form(request):
 
 def fijo_dashboard(request):
     fijo_id = request.POST.get("fijoId")
-    v = Vendedor.objects.get(id=fijo_id)
+    v = Usuario.objects.get(id=fijo_id).vendedor
 
     # transacciones hechas por hoy
     transacciones_diarias = Transacciones.objects.filter(vendedor=v).values('fecha').annotate(conteo=Count('fecha'))
     temp_transacciones_diarias = list(transacciones_diarias)
     transacciones_diarias_arr = []
     for element in temp_transacciones_diarias:
-        transacciones_diarias_arr.append([element['fecha'], element['conteo']])
+        transacciones_diarias_arr.append([element['fecha'].strftime("%Y-%m-%d"), element['conteo']])
 
     transacciones_diarias_arr = simplejson.dumps(transacciones_diarias_arr)
 
@@ -95,7 +95,7 @@ def fijo_dashboard(request):
     temp_ganancias_diarias = list(ganancias_diarias)
     ganancias_diarias_arr = []
     for element in temp_ganancias_diarias:
-        ganancias_diarias_arr.append([element['fecha'], element['ganancia']])
+        ganancias_diarias_arr.append([element['fecha'].strftime("%Y-%m-%d"), element['ganancia']])
     ganancias_diarias_arr = simplejson.dumps(ganancias_diarias_arr)
 
     # todos los productos del vendedor
@@ -129,15 +129,15 @@ def fijo_dashboard(request):
 
 
 def ambulante_dashboard(request):
-    id_amb = request.POST.get("ambulanteId")
-    v = Vendedor.objects.get(id=id_amb)
+    amb_id = request.POST.get("ambulanteId")
+    v = Usuario.objects.get(id=amb_id).vendedor
 
     # transacciones hechas por hoy
     transacciones_diarias = Transacciones.objects.filter(vendedor=v).values('fecha').annotate(conteo=Count('fecha'))
     temp_transacciones_diarias = list(transacciones_diarias)
     transacciones_diarias_arr = []
     for element in temp_transacciones_diarias:
-        transacciones_diarias_arr.append([element['fecha'], element['conteo']])
+        transacciones_diarias_arr.append([element['fecha'].strftime("%Y-%m-%d"), element['conteo']])
     transacciones_diarias_arr = simplejson.dumps(transacciones_diarias_arr)
 
     # ganancias de hoy
@@ -145,7 +145,7 @@ def ambulante_dashboard(request):
     temp_ganancias_diarias = list(ganancias_diarias)
     ganancias_diarias_arr = []
     for element in temp_ganancias_diarias:
-        ganancias_diarias_arr.append([element['fecha'], element['ganancia']])
+        ganancias_diarias_arr.append([element['fecha'].strftime("%Y-%m-%d"), element['ganancia']])
     ganancias_diarias_arr = simplejson.dumps(ganancias_diarias_arr)
 
     # todos los productos del vendedor
@@ -215,16 +215,17 @@ def admin_post(id_adm, avatar, email, nombre, contraseña, request):
         if usr.tipo != 0:
             datos_usuarios.append([])
             datos_usuarios[i].append(usr.id)
-            datos_usuarios[i].append(usr.nombre)
-            datos_usuarios[i].append(usr.email)
+            datos_usuarios[i].append(usr.user.nombre)
+            datos_usuarios[i].append(usr.user.email)
             datos_usuarios[i].append(usr.tipo)
             datos_usuarios[i].append(str(usr.avatar))
+            '''
             datos_usuarios[i].append(usr.activo)
             datos_usuarios[i].append(usr.formasDePago)
             datos_usuarios[i].append(usr.horarioIni)
             datos_usuarios[i].append(usr.horarioFin)
             datos_usuarios[i].append(usr.contraseña)
-
+            '''
             i += 1
 
     lista_de_usuarios = simplejson.dumps(datos_usuarios, ensure_ascii=False).encode('utf8')
@@ -511,7 +512,7 @@ def producto_req(request):
 
     p = Usuario.objects.get(id=id_user)
     avatar = p.avatar
-    nombre = p.nombre
+    nombre = p.user.first_name
 
     return render(request, url,
                   {"email": email, "tipo": tipo, "id": id_user, "nombre": nombre, "horarioIni": horario_ini,
@@ -530,7 +531,7 @@ def vista_vendedor_por_alumno(request):
                 favorito = 1
 
         tipo = v.tipo
-        nombre = v.nombre
+        nombre = v.user.first_name
         avatar = v.avatar
         formas_de_pago = v.vendedor.formasDePago
 
@@ -667,7 +668,7 @@ def editar_datos(request):
             vf = v.vendedorfijo
             hora_local = time.localtime()
             hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
-            if vf.hora_apertura <= hora_local <= vf.hora_clausura:
+            if vf.horarioIni <= hora_local <= vf.horarioFin:
                 v.activo = 1
             else:
                 v.activo = 0
@@ -706,7 +707,7 @@ def redirigir_editar(id_vendedor, request):
     nombre = usr.user.first_name
     tipo = usr.tipo
     avatar = usr.avatar
-    activo = usr.activo
+    activo = usr.vendedor.activo
     formas_de_pago = usr.vendedor.formasDePago
     horario_ini = ''
     horario_fin = ''
