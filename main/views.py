@@ -12,66 +12,65 @@ from django.contrib.auth import authenticate, login, logout
 
 from .forms import GestionProductosForm
 from .forms import LoginForm
-from .forms import editarProductosForm
 from .models import *
 
 
 def index(request):
-    vendedoresId = []
-    vendedoresTipo = []
-    vendedoresNombre = []
-    vendedoresAvatar = []
-    vendedoresPago = []
-    vendedoresIni = []
-    vendedoresFin = []
-    vendedoresUbicacion = []
+    vendedores_id = []
+    vendedores_tipo = []
+    vendedores_nombre = []
+    vendedores_avatar = []
+    vendedores_pago = []
+    vendedores_ini = []
+    vendedores_fin = []
+    vendedores_ubicacion = []
     # lista de vendedores
     i = 0
     for v in Vendedor.objects.all():
-        Ini = ""
-        Fin = ""
-        if ((v.tipo == 2) & (v.activo)):
-            vendedoresId.append(v.user.id)
-            vendedoresTipo.append(v.tipo)
-            vendedoresNombre.append(v.user.user.username)
-            vendedoresAvatar.append(str(v.user.avatar))
-            vendedoresPago.append(v.formasDePago)
-            vendedoresUbicacion.append(v.ubicacion)
-            vendedoresIni.append(Ini)
-            vendedoresFin.append(Fin)
+        ini = ""
+        fin = ""
+        if v.tipo == 2 and v.activo:
+            vendedores_id.append(v.user.id)
+            vendedores_tipo.append(v.tipo)
+            vendedores_nombre.append(v.user.user.username)
+            vendedores_avatar.append(str(v.user.avatar))
+            vendedores_pago.append(v.formasDePago)
+            vendedores_ubicacion.append(v.ubicacion)
+            vendedores_ini.append(ini)
+            vendedores_fin.append(fin)
         if v.tipo == 1:
             vf = v.vendedorfijo
             hora_local = time.localtime()
             hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
-            Ini = (str(vf.horarioIni))
-            Fin = (str(vf.horarioFin))
-            vendedoresIni.append(Ini)
-            vendedoresFin.append(Fin)
+            ini = vf.horarioIni.strftime("%H:%M")
+            fin = vf.horarioFin.strftime("%H:%M")
+            vendedores_ini.append(ini)
+            vendedores_fin.append(fin)
             if vf.horarioIni <= hora_local <= vf.horarioFin:
                 v.activo = 1
-                vendedoresId.append(v.user.id)
-                vendedoresTipo.append(v.tipo)
-                vendedoresNombre.append(v.user.user.username)
-                vendedoresAvatar.append(str(v.user.avatar))
-                vendedoresPago.append(v.formasDePago)
-                vendedoresUbicacion.append(v.ubicacion)
+                vendedores_id.append(v.user.id)
+                vendedores_tipo.append(v.tipo)
+                vendedores_nombre.append(v.user.user.username)
+                vendedores_avatar.append(str(v.user.avatar))
+                vendedores_pago.append(v.formasDePago)
+                vendedores_ubicacion.append(v.ubicacion)
             else:
                 v.activo = 0
             v.save()
         i = i + 1
 
-    nombre = simplejson.dumps(vendedoresNombre)
-    tipo = simplejson.dumps(vendedoresTipo)
-    id = simplejson.dumps(vendedoresId)
-    avatar = simplejson.dumps(vendedoresAvatar)
-    formasDePago = simplejson.dumps(vendedoresPago)
-    horarioIni = simplejson.dumps(vendedoresIni)
-    horarioFin = simplejson.dumps(vendedoresFin)
-    ubicacion = simplejson.dumps(vendedoresUbicacion)
+    nombre = simplejson.dumps(vendedores_nombre)
+    tipo = simplejson.dumps(vendedores_tipo)
+    ids = simplejson.dumps(vendedores_id)
+    avatar = simplejson.dumps(vendedores_avatar)
+    formas_de_pago = simplejson.dumps(vendedores_pago)
+    horario_ini = simplejson.dumps(vendedores_ini)
+    horario_fin = simplejson.dumps(vendedores_fin)
+    ubicacion = simplejson.dumps(vendedores_ubicacion)
 
     return render(request, 'main/baseAlumno-sinLogin.html',
-                  {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "formasDePago": formasDePago,
-                   "horarioIni": horarioIni, "horarioFin": horarioFin, "ubicacion": ubicacion})
+                  {"nombre": nombre, "tipo": tipo, "id": ids, "avatar": avatar, "formasDePago": formas_de_pago,
+                   "horarioIni": horario_ini, "horarioFin": horario_fin, "ubicacion": ubicacion})
 
 
 def login_form(request):
@@ -237,7 +236,7 @@ def admin_post(id_adm, avatar, email, nombre, contraseña, request):
 
 
 def obtener_favoritos(id_vendedor):
-    favoritos = Favoritos.objects.filter(vendedor=Vendedor.objects.get(id=id_vendedor)).count()
+    favoritos = Favoritos.objects.filter(vendedor=Usuario.objects.get(id=id_vendedor).vendedor).count()
     return favoritos
 
 
@@ -263,17 +262,17 @@ def login_req(request):
     if my_login_form.is_valid():
         vendedores = []
 
-        user = authenticate(request, email=email, password=password)
+        user = authenticate(request, username=email, password=password)
         print(user)
         if user is not None:
-            login_form(request, user)
-            p = user.usuario
+            login(request, user)
+            usuario = user.usuario
             encontrado = True
 
             nombre = user.first_name
-            id_user = p.id
-            tipo = p.tipo
-            avatar = p.avatar
+            id_user = usuario.id
+            tipo = usuario.tipo
+            avatar = usuario.avatar
 
             if tipo == 0:
                 url = 'main/baseAdmin.html'
@@ -285,24 +284,24 @@ def login_req(request):
             elif tipo == 2:
                 url = 'main/vendedor-fijo.html'
 
-                horario_ini = p.horarioIni
-                horario_fin = p.horarioFin
-                request.session['horarioIni'] = horario_ini
-                request.session['horarioFin'] = horario_fin
+                horario_ini = usuario.vendedor.vendedorfijo.horarioIni
+                horario_fin = usuario.vendedor.vendedorfijo.horarioFin
+                request.session['horarioIni'] = horario_ini.strftime("%H:%M")
+                request.session['horarioFin'] = horario_fin.strftime("%H:%M")
 
-                formas_de_pago = p.formasDePago
+                formas_de_pago = usuario.vendedor.formasDePago
                 request.session['formasDePago'] = formas_de_pago
 
-                activo = p.activo
+                activo = usuario.vendedor.activo
                 request.session['activo'] = activo
 
             elif tipo == 3:
                 url = 'main/vendedor-ambulante.html'
 
-                formas_de_pago = p.formasDePago
+                formas_de_pago = usuario.vendedor.formasDePago
                 request.session['formasDePago'] = formas_de_pago
 
-                activo = p.activo
+                activo = usuario.vendedor.activo
                 request.session['activo'] = activo
 
         # si no se encuentra el usuario, se retorna a pagina de login
@@ -316,14 +315,14 @@ def login_req(request):
         request.session['nombre'] = nombre
         request.session['avatar'] = str(avatar)
         # si son vendedores, crear lista de productos
-        for p in Usuario.objects.filer(tipo__in=[2, 3]):
-            vendedores.append(p.id)
+        for usuario in Usuario.objects.filter(tipo__in=[2, 3]):
+            vendedores.append(usuario.id)
         vendedores_json = simplejson.dumps(vendedores)
 
         # obtener alimentos en caso de que sea vendedor fijo o ambulante
         if tipo == 2 or tipo == 3:
             i = 0
-            for producto in Comida.objects.filter(vendedor=p.vendedor):
+            for producto in Comida.objects.filter(vendedor=usuario.vendedor):
                 lista_de_productos.append([])
                 lista_de_productos[i].append(producto.nombre)
                 categoria = str(producto.categorias)
@@ -418,6 +417,7 @@ def register(request):
     hora_final = request.POST.get("horaFin")
     avatar = request.FILES.get("avatar")
     formas_de_pago = []
+
     if not (request.POST.get("formaDePago0") is None):
         formas_de_pago.append(request.POST.get("formaDePago0"))
     if not (request.POST.get("formaDePago1") is None):
@@ -427,21 +427,21 @@ def register(request):
     if not (request.POST.get("formaDePago3") is None):
         formas_de_pago.append(request.POST.get("formaDePago3"))
 
-    user = User(first_name=nombre, email=email)
+    user = User(username=email, first_name=nombre, email=email)
     user.set_password(password)
     user.save()
 
     usuario = Usuario(user=user, tipo=tipo, avatar=avatar)
     usuario.save()
 
-    if tipo == 2:
+    if int(tipo) == 2:
         vendedor = Vendedor(user=usuario, formasDePago=formas_de_pago, activo=False, tipo=1)
         vendedor.save()
         fijo = VendedorFijo(vendedor=vendedor, horarioIni=hora_inicial, horarioFin=hora_final)
         fijo.save()
 
-    if tipo == 3:
-        vendedor = Vendedor(user=usuario, formasDePago=formas_de_pago, activo=False, tipo=1)
+    if int(tipo) == 3:
+        vendedor = Vendedor(user=usuario, formasDePago=formas_de_pago, activo=False, tipo=2)
         vendedor.save()
 
     return login_req(request)
@@ -476,8 +476,8 @@ def producto_req(request):
 
             vendedor = Vendedor.objects.get(user=Usuario.objects.get(id=id_user))
             if tipo == 2:
-                horario_ini = vendedor.vendedorfijo.horarioIni
-                horario_fin = vendedor.vendedorfijo.horarioFin
+                horario_ini = vendedor.vendedorfijo.horarioIni.strftime("%H:%M")
+                horario_fin = vendedor.vendedorfijo.horarioFin.strftime("%H:%M")
 
             formulario = GestionProductosForm(request.POST)
             if formulario.is_valid():
@@ -541,8 +541,8 @@ def vista_vendedor_por_alumno(request):
             url = 'main/vendedor-ambulante-vistaAlumno.html'
         if tipo == 2:
             url = 'main/vendedor-fijo-vistaAlumno.html'
-            horario_ini = v.vendedor.horarioIni
-            horario_fin = v.vendedor.horarioFin
+            horario_ini = v.vendedor.horarioIni.strftime("%H:%M")
+            horario_fin = v.vendedor.horarioFin.strftime("%H:%M")
 
         # obtener alimentos
         i = 0
@@ -586,8 +586,8 @@ def vista_vendedor_por_alumno_sin_login(request):
             url = 'main/vendedor-ambulante-vistaAlumno-sinLogin.html'
         if tipo == 2:
             url = 'main/vendedor-fijo-vistaAlumno-sinLogin.html'
-            horario_ini = user.vendedor.vendedorfijo.horarioIni
-            horario_fin = user.vendedor.vendedorfijo.horarioFin
+            horario_ini = user.vendedor.vendedorfijo.horarioIni.strftime("%H:%M")
+            horario_fin = user.vendedor.vendedorfijo.horarioFin.strftime("%H:%M")
 
         i = 0
         lista_de_productos = []
@@ -655,9 +655,11 @@ def editar_datos(request):
         hora_inicial = request.POST.get("horaIni")
         hora_final = request.POST.get("horaFin")
         if hora_inicial is not None:
-            usuario.vendedor.vendedorfijo.update(horarioIni=hora_inicial)
+            usuario.vendedor.vendedorfijo.horarioIni = hora_inicial
         if hora_final is not None:
-            usuario.vendedor.vendedorfijo.update(horarioFin=hora_final)
+            usuario.vendedor.vendedorfijo.horarioFin = hora_final
+
+        usuario.vendedor.vendedorfijo.save()
 
     # actualizar vendedores fijos
     for v in Vendedor.objects.all():
@@ -683,14 +685,16 @@ def editar_datos(request):
         formas_de_pago += '3,'
 
     if nombre is not None and nombre != "":
-        usuario.user.update(nombre=nombre)
+        usuario.user.nombre = nombre
     if formas_de_pago != "":
-        usuario.vendedor.update(formasDePago=formas_de_pago[:-1])
+        usuario.vendedor.formasDePago = formas_de_pago[:-1]
     if avatar is not None and avatar != "":
         with default_storage.open('../media/avatars/' + str(avatar), 'wb+') as destination:
             for chunk in avatar.chunks():
                 destination.write(chunk)
-        usuario.update(avatar='/avatars/' + str(avatar))
+        usuario.avatar = '/avatars/' + str(avatar)
+
+    usuario.save()
 
     return redirigir_editar(id_vendedor, request)
 
@@ -707,8 +711,8 @@ def redirigir_editar(id_vendedor, request):
     horario_ini = ''
     horario_fin = ''
     if tipo == 2:
-        horario_ini = usr.vendedor.vendedorfijo.horarioIni
-        horario_fin = usr.vendedor.vendedorfijo.horarioFin
+        horario_ini = usr.vendedor.vendedorfijo.horarioIni.strftime("%H:%M")
+        horario_fin = usr.vendedor.vendedorfijo.horarioFin.strftime("%H:%M")
     favoritos = obtener_favoritos(id_vendedor)
 
     request.session['id'] = id_v
@@ -845,9 +849,10 @@ def cambiar_estado(request):
             vendedor = Usuario.objects.get(id=id_vendedor).vendedor
 
             if estado == "true":
-                vendedor.update(activo=True)
+                vendedor.activo = True
             else:
-                vendedor.update(activo=False)
+                vendedor.activo = False
+            vendedor.save()
 
             data = {"estado": estado}
             return JsonResponse(data)
@@ -888,7 +893,8 @@ def procesar_perfil_alumno(request):
                 a_eliminar.append(int(fav))
 
         if nuevo_nombre != "":
-            user.user.update(nombre=nuevo_nombre)
+            user.user.nombre = nuevo_nombre
+            user.user.save()
 
         for id_fav in a_eliminar:
             fav = Favoritos.objects.get(alumno=user, vendedor=Usuario.objects.get(id=id_fav).vendedor)
@@ -900,7 +906,8 @@ def procesar_perfil_alumno(request):
                 for chunk in nueva_imagen.chunks():
                     destination.write(chunk)
 
-            user.update(avatar='/avatars/' + filename)
+            user.avatar = '/avatars/' + filename
+            user.save()
 
         return JsonResponse({"ejemplo": "correcto"})
 
@@ -935,13 +942,16 @@ def editar_usuario_admin(request):
         user = Usuario.objects.get(id=user_id)
 
         if email is not None:
-            user.user.update(email=email)
+            user.user.email = email
         if nombre is not None:
-            user.user.update(first_name=nombre)
+            user.user.first_name = nombre
         if contraseña is not None:
             user.user.set_password(contraseña)
         if avatar is not None:
-            user.update(avatar=avatar)
+            user.avatar = avatar
+
+        user.user.save()
+        user.save()
 
         data = {"respuesta": user_id}
         return JsonResponse(data)
@@ -984,26 +994,32 @@ def editar_usuario(request):
 
         user = Usuario.objects.get(id=user_id)
         if email is not None:
-            user.user.update(email=email)
+            user.user.email = email
         if nombre is not None:
-            user.user.update(first_name=nombre)
+            user.user.first_name = nombre
         if contraseña is not None:
             user.user.set_password(contraseña)
+        user.user.save()
 
         if tipo is not None:
-            user.update(tipo=tipo)
+            user.tipo = tipo
         if avatar is not None:
-            user.update(avatar=avatar)
+            user.avatar = avatar
+        user.save()
 
         if tipo == 2:
             if hora_ini is not None:
-                user.vendedor.vendedorfijo.update(horarioIni=hora_ini)
+                user.vendedor.vendedorfijo.horarioIni = hora_ini
             if hora_fin is not None:
-                user.vendedor.vendedorfijo.update(horarioFin=hora_fin)
-            user.vendedor.update(formasDePago=nueva_lista_formas_de_pago)
+                user.vendedor.vendedorfijo.horarioFin = hora_fin
+            user.vendedor.formasDePago = nueva_lista_formas_de_pago
+
+            user.vendedor.save()
+            user.vendedor.vendedorfijo.save()
 
         if tipo == 2:
-            user.vendedor.update(formasDePago=nueva_lista_formas_de_pago)
+            user.vendedor.formasDePago = nueva_lista_formas_de_pago
+            user.vendedor.save()
 
         data = {"respuesta": user_id}
         return JsonResponse(data)
@@ -1063,13 +1079,15 @@ def get_stock(request):
 
         if request.GET.get("op") == "suma":
             nuevo_stock = stock + 1
-            comida.update(stock=nuevo_stock)
+            comida.stock = nuevo_stock
+            comida.save()
 
         elif request.GET.get("op") == "resta":
             nuevo_stock = stock - 1
             if stock == 0:
                 return JsonResponse({"stock": stock})
-            comida.update(stock=nuevo_stock)
+            comida.stock = nuevo_stock
+            comida.save()
 
     return JsonResponse({"stock": stock})
 
