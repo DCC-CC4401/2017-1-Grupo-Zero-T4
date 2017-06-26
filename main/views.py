@@ -8,6 +8,7 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth import authenticate, login, logout
 
 from .forms import GestionProductosForm
 from .forms import LoginForm
@@ -29,7 +30,7 @@ def index(request):
     for v in Vendedor.objects.all():
         Ini = ""
         Fin = ""
-        if ((v.tipo==2) & (v.activo)):
+        if ((v.tipo == 2) & (v.activo)):
             vendedoresId.append(v.user.id)
             vendedoresTipo.append(v.tipo)
             vendedoresNombre.append(v.user.user.username)
@@ -57,8 +58,7 @@ def index(request):
             else:
                 v.activo = 0
             v.save()
-        i=i+1
-
+        i = i + 1
 
     nombre = simplejson.dumps(vendedoresNombre)
     tipo = simplejson.dumps(vendedoresTipo)
@@ -69,11 +69,12 @@ def index(request):
     horarioFin = simplejson.dumps(vendedoresFin)
     ubicacion = simplejson.dumps(vendedoresUbicacion)
 
+    return render(request, 'main/baseAlumno-sinLogin.html',
+                  {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "formasDePago": formasDePago,
+                   "horarioIni": horarioIni, "horarioFin": horarioFin, "ubicacion": ubicacion})
 
-    return render(request, 'main/baseAlumno-sinLogin.html', {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "formasDePago": formasDePago, "horarioIni": horarioIni, "horarioFin": horarioFin, "ubicacion": ubicacion})
 
-
-def login(request):
+def login_form(request):
     return render(request, 'main/login.html', {})
 
 
@@ -174,8 +175,7 @@ def ambulante_dashboard(request):
                    "productosPrecio": productos_precio_arr})
 
 
-# TODO: corregir vistas para usar modelos nuevos
-def adminEdit(request):
+def admin_edit(request):
     nombre = request.POST.get("adminName")
     contraseña = request.POST.get("adminPassword")
     id = request.POST.get("adminId")
@@ -189,7 +189,7 @@ def signup(request):
     return render(request, 'main/signup.html', {})
 
 
-def signupAdmin(request):
+def signup_admin(request):
     return render(request, 'main/signupAdmin.html', {})
 
 
@@ -197,173 +197,167 @@ def loggedin(request):
     return render(request, 'main/loggedin.html', {})
 
 
-def loginAdmin(request):
-    id = request.POST.get("userID")
+def login_admin(request):
+    id_adm = request.POST.get("userID")
     email = request.POST.get("email")
     avatar = "avatars/" + request.POST.get("fileName")
     nombre = request.POST.get("name")
     contraseña = request.POST.get("password")
-    return adminPOST(id, avatar, email, nombre, contraseña, request)
+    return admin_post(id_adm, avatar, email, nombre, contraseña, request)
 
 
-def adminPOST(id, avatar, email, nombre, contraseña, request):
+def admin_post(id_adm, avatar, email, nombre, contraseña, request):
     # ids de todos los usuarios no admins
-    datosUsuarios = []
+    datos_usuarios = []
     i = 0
-    numeroUsuarios = Usuario.objects.count()
-    numeroDeComidas = Comida.objects.count()
-    for usr in Usuario.objects.raw('SELECT * FROM usuario WHERE tipo != 0'):
-        datosUsuarios.append([])
-        datosUsuarios[i].append(usr.id)
-        datosUsuarios[i].append(usr.nombre)
-        datosUsuarios[i].append(usr.email)
-        datosUsuarios[i].append(usr.tipo)
-        datosUsuarios[i].append(str(usr.avatar))
-        datosUsuarios[i].append(usr.activo)
-        datosUsuarios[i].append(usr.formasDePago)
-        datosUsuarios[i].append(usr.horarioIni)
-        datosUsuarios[i].append(usr.horarioFin)
-        datosUsuarios[i].append(usr.contraseña)
+    numero_usuarios = Usuario.objects.count()
+    numero_de_comidas = Comida.objects.count()
+    for usr in Usuario.objects.all():
+        if usr.tipo != 0:
+            datos_usuarios.append([])
+            datos_usuarios[i].append(usr.id)
+            datos_usuarios[i].append(usr.nombre)
+            datos_usuarios[i].append(usr.email)
+            datos_usuarios[i].append(usr.tipo)
+            datos_usuarios[i].append(str(usr.avatar))
+            datos_usuarios[i].append(usr.activo)
+            datos_usuarios[i].append(usr.formasDePago)
+            datos_usuarios[i].append(usr.horarioIni)
+            datos_usuarios[i].append(usr.horarioFin)
+            datos_usuarios[i].append(usr.contraseña)
 
-        i += 1
-    listaDeUsuarios = simplejson.dumps(datosUsuarios, ensure_ascii=False).encode('utf8')
+            i += 1
+
+    lista_de_usuarios = simplejson.dumps(datos_usuarios, ensure_ascii=False).encode('utf8')
 
     # limpiar argumentos de salida segun tipo de vista
-    argumentos = {"nombre": nombre, "id": id, "avatar": avatar, "email": email, "lista": listaDeUsuarios,
-                  "numeroUsuarios": numeroUsuarios, "numeroDeComidas": numeroDeComidas, "contraseña": contraseña}
+    argumentos = {"nombre": nombre, "id": id_adm, "avatar": avatar, "email": email, "lista": lista_de_usuarios,
+                  "numeroUsuarios": numero_usuarios, "numeroDeComidas": numero_de_comidas, "contraseña": contraseña}
     return render(request, 'main/baseAdmin.html', argumentos)
 
 
-def obtenerFavoritos(idVendedor):
-    favoritos = 0
-    for fila in Favoritos.objects.raw('SELECT * FROM favoritos WHERE idVendedor = "' + str(idVendedor) + '"'):
-        favoritos += 1
+def obtener_favoritos(id_vendedor):
+    favoritos = Favoritos.objects.filter(vendedor=Vendedor.objects.get(id=id_vendedor)).count()
     return favoritos
 
 
-def loginReq(request):
+def login_req(request):
     # inicaliar variables
     tipo = 0
     nombre = ''
     url = ''
-    id = 0
-    horarioIni = 0
-    horarioFin = 0
+    id_user = 0
+    horario_ini = 0
+    horario_fin = 0
     encontrado = False
     email = request.POST.get("email")
     avatar = ''
     contraseña = ''
     password = request.POST.get("password")
-    listaDeProductos = []
-    formasDePago = []
+    lista_de_productos = []
+    formas_de_pago = []
     activo = False
 
     # buscar vendedor en base de datos
-    MyLoginForm = LoginForm(request.POST)
-    if MyLoginForm.is_valid():
+    my_login_form = LoginForm(request.POST)
+    if my_login_form.is_valid():
         vendedores = []
-        for p in Usuario.objects.raw('SELECT * FROM usuario'):
-            if p.contraseña == password and p.email == email:
-                tipo = p.tipo
-                nombre = p.nombre
-                if (tipo == 0):
-                    url = 'main/baseAdmin.html'
-                    id = p.id
-                    tipo = p.tipo
-                    encontrado = True
-                    avatar = p.avatar
-                    contraseña = p.contraseña
-                    break
-                elif (tipo == 1):
-                    url = 'main/baseAlumno.html'
-                    id = p.id
-                    avatar = p.avatar
-                    tipo = p.tipo
-                    encontrado = True
-                    avatar = p.avatar
 
-                    break
-                elif (tipo == 2):
-                    url = 'main/vendedor-fijo.html'
-                    id = p.id
-                    tipo = p.tipo
-                    encontrado = True
-                    horarioIni = p.horarioIni
-                    horarioFin = p.horarioFin
-                    request.session['horarioIni'] = horarioIni
-                    request.session['horarioFin'] = horarioFin
-                    avatar = p.avatar
-                    activo = p.activo
-                    formasDePago = p.formasDePago
-                    request.session['formasDePago'] = formasDePago
-                    request.session['activo'] = activo
-                    break
-                elif (tipo == 3):
-                    url = 'main/vendedor-ambulante.html'
-                    id = p.id
-                    tipo = p.tipo
-                    encontrado = True
-                    avatar = p.avatar
-                    activo = p.activo
-                    formasDePago = p.formasDePago
-                    request.session['formasDePago'] = formasDePago
-                    request.session['activo'] = activo
-                    break
+        user = authenticate(request, email=email, password=password)
+        print(user)
+        if user is not None:
+            login_form(request, user)
+            p = user.usuario
+            encontrado = True
+
+            nombre = user.first_name
+            id_user = p.id
+            tipo = p.tipo
+            avatar = p.avatar
+
+            if tipo == 0:
+                url = 'main/baseAdmin.html'
+                contraseña = password
+
+            elif tipo == 1:
+                url = 'main/baseAlumno.html'
+
+            elif tipo == 2:
+                url = 'main/vendedor-fijo.html'
+
+                horario_ini = p.horarioIni
+                horario_fin = p.horarioFin
+                request.session['horarioIni'] = horario_ini
+                request.session['horarioFin'] = horario_fin
+
+                formas_de_pago = p.formasDePago
+                request.session['formasDePago'] = formas_de_pago
+
+                activo = p.activo
+                request.session['activo'] = activo
+
+            elif tipo == 3:
+                url = 'main/vendedor-ambulante.html'
+
+                formas_de_pago = p.formasDePago
+                request.session['formasDePago'] = formas_de_pago
+
+                activo = p.activo
+                request.session['activo'] = activo
 
         # si no se encuentra el usuario, se retorna a pagina de login
-        if encontrado == False:
+        if not encontrado:
             return render(request, 'main/login.html', {"error": "Usuario o contraseña invalidos"})
 
         # crear datos de sesion
-        request.session['id'] = id
+        request.session['id'] = id_user
         request.session['tipo'] = tipo
         request.session['email'] = email
         request.session['nombre'] = nombre
         request.session['avatar'] = str(avatar)
         # si son vendedores, crear lista de productos
-        for p in Usuario.objects.raw('SELECT * FROM usuario'):
-            if p.tipo == 2 or p.tipo == 3:
-                vendedores.append(p.id)
-        vendedoresJson = simplejson.dumps(vendedores)
+        for p in Usuario.objects.filer(tipo__in=[2, 3]):
+            vendedores.append(p.id)
+        vendedores_json = simplejson.dumps(vendedores)
 
         # obtener alimentos en caso de que sea vendedor fijo o ambulante
         if tipo == 2 or tipo == 3:
             i = 0
-            for producto in Comida.objects.raw('SELECT * FROM comida WHERE idVendedor = "' + str(id) + '"'):
-                listaDeProductos.append([])
-                listaDeProductos[i].append(producto.nombre)
+            for producto in Comida.objects.filter(vendedor=p.vendedor):
+                lista_de_productos.append([])
+                lista_de_productos[i].append(producto.nombre)
                 categoria = str(producto.categorias)
-                listaDeProductos[i].append(categoria)
-                listaDeProductos[i].append(producto.stock)
-                listaDeProductos[i].append(producto.precio)
-                listaDeProductos[i].append(producto.descripcion)
-                listaDeProductos[i].append(str(producto.imagen))
+                lista_de_productos[i].append(categoria)
+                lista_de_productos[i].append(producto.stock)
+                lista_de_productos[i].append(producto.precio)
+                lista_de_productos[i].append(producto.descripcion)
+                lista_de_productos[i].append(str(producto.imagen))
                 i += 1
 
-        listaDeProductos = simplejson.dumps(listaDeProductos, ensure_ascii=False).encode('utf8')
+        lista_de_productos = simplejson.dumps(lista_de_productos, ensure_ascii=False).encode('utf8')
 
         # limpiar argumentos de salida segun tipo de vista
-        argumentos = {"email": email, "tipo": tipo, "id": id, "vendedores": vendedoresJson, "nombre": nombre,
-                      "horarioIni": horarioIni, "horarioFin": horarioFin, "avatar": avatar,
-                      "listaDeProductos": listaDeProductos}
-        if (tipo == 0):
+        argumentos = {"email": email, "tipo": tipo, "id": id_user, "vendedores": vendedores_json, "nombre": nombre,
+                      "horarioIni": horario_ini, "horarioFin": horario_fin, "avatar": avatar,
+                      "listaDeProductos": lista_de_productos}
+        if tipo == 0:
             request.session['contraseña'] = contraseña
-            return adminPOST(id, avatar, email, nombre, contraseña, request)
-        if (tipo == 1):
-            argumentos = {"nombresesion": nombre, "tipo": tipo, "id": id, "vendedores": vendedoresJson,
+            return admin_post(id_user, avatar, email, nombre, contraseña, request)
+        if tipo == 1:
+            argumentos = {"nombresesion": nombre, "tipo": tipo, "id": id_user, "vendedores": vendedores_json,
                           "avatarSesion": avatar}
-        if (tipo == 2):
-            request.session['listaDeProductos'] = str(listaDeProductos)
-            request.session['favoritos'] = obtenerFavoritos(id)
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "horarioIni": horarioIni,
-                          "favoritos": obtenerFavoritos(id), "horarioFin": horarioFin, "avatar": avatar,
-                          "listaDeProductos": listaDeProductos, "activo": activo, "formasDePago": formasDePago,
-                          "activo": activo}
-        if (tipo == 3):
-            request.session['listaDeProductos'] = str(listaDeProductos)
-            request.session['favoritos'] = obtenerFavoritos(id)
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "favoritos": obtenerFavoritos(id),
-                          "listaDeProductos": listaDeProductos, "activo": activo, "formasDePago": formasDePago}
+        if tipo == 2:
+            request.session['listaDeProductos'] = str(lista_de_productos)
+            request.session['favoritos'] = obtener_favoritos(id_user)
+            argumentos = {"nombre": nombre, "tipo": tipo, "id": id_user, "horarioIni": horario_ini,
+                          "favoritos": obtener_favoritos(id_user), "horarioFin": horario_fin, "avatar": avatar,
+                          "listaDeProductos": lista_de_productos, "activo": activo, "formasDePago": formas_de_pago}
+        if tipo == 3:
+            request.session['listaDeProductos'] = str(lista_de_productos)
+            request.session['favoritos'] = obtener_favoritos(id_user)
+            argumentos = {"nombre": nombre, "tipo": tipo, "id": id_user, "avatar": avatar,
+                          "favoritos": obtener_favoritos(id_user),
+                          "listaDeProductos": lista_de_productos, "activo": activo, "formasDePago": formas_de_pago}
 
         # enviar a vista respectiva de usuario
         return render(request, url, argumentos)
@@ -374,10 +368,9 @@ def loginReq(request):
 
 
 def gestionproductos(request):
+    path = ''
     if request.session.has_key('id'):
-        email = request.session['email']
         tipo = request.session['tipo']
-        id = request.session['id']
         if tipo == 3:
             path = "main/baseVAmbulante.html"
         if tipo == 2:
@@ -389,27 +382,28 @@ def vendedorprofilepage(request):
     return render(request, 'main/vendedor-profile-page.html', {})
 
 
-def formView(request):
+def form_view(request):
     if request.session.has_key('id'):
         email = request.session['email']
         tipo = request.session['tipo']
-        id = request.session['id']
-        if (tipo == 0):
+        id_user = request.session['id']
+        if tipo == 0:
             url = 'main/baseAdmin.html'
-        elif (tipo == 1):
+        elif tipo == 1:
             url = 'main/baseAlumno.html'
-        elif (tipo == 2):
+        elif tipo == 2:
             url = 'main/vendedor-fijo.html'
-        elif (tipo == 3):
+        else:
             url = 'main/vendedor-ambulante.html'
-        return render(request, url, {"email": email, "tipo": tipo, "id": id})
+        return render(request, url, {"email": email, "tipo": tipo, "id": id_user})
     else:
         return render(request, 'main/base.html', {})
 
 
-def logout(request):
+def log_out(request):
     try:
         del request.session['id']
+        logout(request)
     except:
         pass
     return index(request)
@@ -420,43 +414,75 @@ def register(request):
     nombre = request.POST.get("nombre")
     email = request.POST.get("email")
     password = request.POST.get("password")
-    horaInicial = request.POST.get("horaIni")
-    horaFinal = request.POST.get("horaFin")
+    hora_inicial = request.POST.get("horaIni")
+    hora_final = request.POST.get("horaFin")
     avatar = request.FILES.get("avatar")
-    formasDePago = []
+    formas_de_pago = []
     if not (request.POST.get("formaDePago0") is None):
-        formasDePago.append(request.POST.get("formaDePago0"))
+        formas_de_pago.append(request.POST.get("formaDePago0"))
     if not (request.POST.get("formaDePago1") is None):
-        formasDePago.append(request.POST.get("formaDePago1"))
+        formas_de_pago.append(request.POST.get("formaDePago1"))
     if not (request.POST.get("formaDePago2") is None):
-        formasDePago.append(request.POST.get("formaDePago2"))
+        formas_de_pago.append(request.POST.get("formaDePago2"))
     if not (request.POST.get("formaDePago3") is None):
-        formasDePago.append(request.POST.get("formaDePago3"))
-    usuarioNuevo = Usuario(nombre=nombre, email=email, tipo=tipo, contraseña=password, avatar=avatar,
-                           formasDePago=formasDePago, horarioIni=horaInicial, horarioFin=horaFinal)
-    usuarioNuevo.save()
-    return loginReq(request)
+        formas_de_pago.append(request.POST.get("formaDePago3"))
+
+    user = User(first_name=nombre, email=email)
+    user.set_password(password)
+    user.save()
+
+    usuario = Usuario(user=user, tipo=tipo, avatar=avatar)
+    usuario.save()
+
+    if tipo == 2:
+        vendedor = Vendedor(user=usuario, formasDePago=formas_de_pago, activo=False, tipo=1)
+        vendedor.save()
+        fijo = VendedorFijo(vendedor=vendedor, horarioIni=hora_inicial, horarioFin=hora_final)
+        fijo.save()
+
+    if tipo == 3:
+        vendedor = Vendedor(user=usuario, formasDePago=formas_de_pago, activo=False, tipo=1)
+        vendedor.save()
+
+    return login_req(request)
 
 
-def productoReq(request):
-    horarioIni = 0
-    horarioFin = 0
-    avatar = ""
+def producto_req(request):
+    url = ''
+    tipo = -1
+    email = ''
+    horario_ini = ''
+    horario_fin = ''
+    id_user = -1
+    vendedor = None
+
     if request.method == "POST":
         if request.session.has_key('id'):
-            id = request.session['id']
+
+            id_user = request.session['id']
             email = request.session['email']
             tipo = request.session['tipo']
+            path = ''
+
             if tipo == 3:
                 path = "main/baseVAmbulante.html"
                 url = "main/vendedor-ambulante.html"
-            if tipo == 2:
+            elif tipo == 2:
                 path = "main/baseVFijo.html"
                 url = "main/vendedor-fijo.html"
-            Formulario = GestionProductosForm(request.POST)
-            if Formulario.is_valid():
+            else:
+                return render(request, 'main/agregar-productos.html',
+                              {"path": path, "respuesta": "¡Ingrese todos los datos!"})
+
+            vendedor = Vendedor.objects.get(user=Usuario.objects.get(id=id_user))
+            if tipo == 2:
+                horario_ini = vendedor.vendedorfijo.horarioIni
+                horario_fin = vendedor.vendedorfijo.horarioFin
+
+            formulario = GestionProductosForm(request.POST)
+            if formulario.is_valid():
                 producto = Comida()
-                producto.idVendedor = id
+                producto.vendedor = vendedor
                 producto.nombre = request.POST.get("nombre")
                 producto.imagen = request.FILES.get("comida")
                 producto.precio = request.POST.get("precio")
@@ -470,27 +496,26 @@ def productoReq(request):
 
     # obtener alimentos en caso de que sea vendedor fijo o ambulante
     i = 0
-    listaDeProductos = []
-    for producto in Comida.objects.raw('SELECT * FROM comida WHERE idVendedor = "' + str(id) + '"'):
-        listaDeProductos.append([])
-        listaDeProductos[i].append(producto.nombre)
+    lista_de_productos = []
+    for producto in Comida.objects.filter(vendedor=vendedor):
+        lista_de_productos.append([])
+        lista_de_productos[i].append(producto.nombre)
         categoria = str(producto.categorias)
-        listaDeProductos[i].append(categoria)
-        listaDeProductos[i].append(producto.stock)
-        listaDeProductos[i].append(producto.precio)
-        listaDeProductos[i].append(producto.descripcion)
-        listaDeProductos[i].append(str(producto.imagen))
+        lista_de_productos[i].append(categoria)
+        lista_de_productos[i].append(producto.stock)
+        lista_de_productos[i].append(producto.precio)
+        lista_de_productos[i].append(producto.descripcion)
+        lista_de_productos[i].append(str(producto.imagen))
         i += 1
-    listaDeProductos = simplejson.dumps(listaDeProductos, ensure_ascii=False).encode('utf8')
+    lista_de_productos = simplejson.dumps(lista_de_productos, ensure_ascii=False).encode('utf8')
 
-    for p in Usuario.objects.raw('SELECT * FROM usuario'):
-        if p.id == id:
-            avatar = p.avatar
-            horarioIni = p.horarioIni
-            horarioFin = p.horarioFin
-            nombre = p.nombre
-    return render(request, url, {"email": email, "tipo": tipo, "id": id, "nombre": nombre, "horarioIni": horarioIni,
-                                 "horarioFin": horarioFin, "avatar": avatar, "listaDeProductos": listaDeProductos})
+    p = Usuario.objects.get(id=id_user)
+    avatar = p.avatar
+    nombre = p.nombre
+
+    return render(request, url,
+                  {"email": email, "tipo": tipo, "id": id_user, "nombre": nombre, "horarioIni": horario_ini,
+                   "horarioFin": horario_fin, "avatar": avatar, "listaDeProductos": lista_de_productos})
 
 
 def vista_vendedor_por_alumno(request):
@@ -509,8 +534,9 @@ def vista_vendedor_por_alumno(request):
         avatar = v.avatar
         formas_de_pago = v.vendedor.formasDePago
 
-        horario_ini = None
-        horario_fin = None
+        horario_ini = ''
+        horario_fin = ''
+        url = ''
         if tipo == 3:
             url = 'main/vendedor-ambulante-vistaAlumno.html'
         if tipo == 2:
@@ -543,194 +569,188 @@ def vista_vendedor_por_alumno(request):
     return None
 
 
-def vistaVendedorPorAlumnoSinLogin(request):
+def vista_vendedor_por_alumno_sin_login(request):
     if request.method == 'POST':
-        id = int(request.POST.get("id"))
-        for p in Usuario.objects.raw('SELECT * FROM usuario'):
-            if p.id == id:
-                tipo = p.tipo
-                nombre = p.nombre
-                avatar = p.avatar
-                formasDePago = p.formasDePago
-                horarioIni = p.horarioIni
-                horarioFin = p.horarioFin
-                activo = p.activo
-                if tipo == 3:
-                    url = 'main/vendedor-ambulante-vistaAlumno-sinLogin.html'
-                    break
-                if tipo == 2:
-                    url = 'main/vendedor-fijo-vistaAlumno-sinLogin.html'
-                    break
-                    # obtener alimentos
-    i = 0
-    listaDeProductos = []
-    for producto in Comida.objects.raw('SELECT * FROM comida WHERE idVendedor = "' + str(id) + '"'):
-        listaDeProductos.append([])
-        listaDeProductos[i].append(producto.nombre)
-        categoria = str(producto.categorias)
-        listaDeProductos[i].append(categoria)
-        listaDeProductos[i].append(producto.stock)
-        listaDeProductos[i].append(producto.precio)
-        listaDeProductos[i].append(producto.descripcion)
-        listaDeProductos[i].append(str(producto.imagen))
-        i += 1
-    listaDeProductos = simplejson.dumps(listaDeProductos, ensure_ascii=False).encode('utf8')
-    return render(request, url,
-                  {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar, "listaDeProductos": listaDeProductos,
-                   "formasDePago": formasDePago, "horarioIni": horarioIni, "horarioFin": horarioFin, "activo": activo})
+        id_user = int(request.POST.get("id"))
+        user = Usuario.objects.get(id=id_user)
+        tipo = user.tipo
+        nombre = user.user.first_name
+        avatar = user.avatar
+        formas_de_pago = user.vendedor.formasDePago
+        url = ''
+        horario_ini = ''
+        horario_fin = ''
+        activo = user.vendedor.activo
+
+        if tipo == 3:
+            url = 'main/vendedor-ambulante-vistaAlumno-sinLogin.html'
+        if tipo == 2:
+            url = 'main/vendedor-fijo-vistaAlumno-sinLogin.html'
+            horario_ini = user.vendedor.vendedorfijo.horarioIni
+            horario_fin = user.vendedor.vendedorfijo.horarioFin
+
+        i = 0
+        lista_de_productos = []
+        for producto in Comida.objects.filter(vendedor=user.vendedor):
+            lista_de_productos.append([])
+            lista_de_productos[i].append(producto.nombre)
+            categoria = str(producto.categorias)
+            lista_de_productos[i].append(categoria)
+            lista_de_productos[i].append(producto.stock)
+            lista_de_productos[i].append(producto.precio)
+            lista_de_productos[i].append(producto.descripcion)
+            lista_de_productos[i].append(str(producto.imagen))
+            i += 1
+        lista_de_productos = simplejson.dumps(lista_de_productos, ensure_ascii=False).encode('utf8')
+
+        return render(request, url,
+                      {"nombre": nombre, "tipo": tipo, "id": id_user, "avatar": avatar,
+                       "listaDeProductos": lista_de_productos,
+                       "formasDePago": formas_de_pago, "horarioIni": horario_ini, "horarioFin": horario_fin,
+                       "activo": activo})
 
 
-@csrf_exempt
-def editarVendedor(request):
+def editar_vendedor(request):
     if request.session.has_key('id'):
-        id = request.session['id']
+        id_user = request.session['id']
         nombre = request.session['nombre']
-        formasDePago = request.session['formasDePago']
+        formas_de_pago = request.session['formasDePago']
         avatar = request.session['avatar']
         tipo = request.session['tipo']
         activo = request.session['activo']
-        listaDeProductos = request.session['listaDeProductos']
+        lista_de_productos = request.session['listaDeProductos']
         favoritos = request.session['favoritos']
-        if (tipo == 2):
-            horarioIni = request.session['horarioIni']
-            horarioFin = request.session['horarioFin']
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "horarioIni": horarioIni, "horarioFin": horarioFin,
-                          "avatar": avatar, "listaDeProductos": listaDeProductos, "activo": activo,
-                          "formasDePago": formasDePago, "favoritos": favoritos}
+
+        url = ''
+        argumentos = {}
+
+        if tipo == 2:
+            horario_ini = request.session['horarioIni']
+            horario_fin = request.session['horarioFin']
+            argumentos = {"nombre": nombre, "tipo": tipo, "id": id_user, "horarioIni": horario_ini,
+                          "horarioFin": horario_fin,
+                          "avatar": avatar, "listaDeProductos": lista_de_productos, "activo": activo,
+                          "formasDePago": formas_de_pago, "favoritos": favoritos}
             url = 'main/editar-vendedor-fijo.html'
-        elif (tipo == 3):
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar,
-                          "listaDeProductos": listaDeProductos,
-                          "activo": activo, "formasDePago": formasDePago, "favoritos": favoritos}
+
+        elif tipo == 3:
+            argumentos = {"nombre": nombre, "tipo": tipo, "id": id_user, "avatar": avatar,
+                          "listaDeProductos": lista_de_productos,
+                          "activo": activo, "formasDePago": formas_de_pago, "favoritos": favoritos}
             url = 'main/editar-vendedor-ambulante.html'
+
         return render(request, url, argumentos)
-    else:
-        return render(request, 'main/base.html', {})
+
+    return render(request, 'main/base.html', {})
 
 
-@csrf_exempt
-def editarDatos(request):
+def editar_datos(request):
     id_vendedor = request.POST.get("id_vendedor")
-    usuario = Usuario.objects.filter(id=id_vendedor)
+    usuario = Usuario.objects.get(id=id_vendedor)
 
     nombre = request.POST.get("nombre")
     tipo = request.POST.get("tipo")
 
-    if (tipo == "2"):
-        horaInicial = request.POST.get("horaIni")
-        horaFinal = request.POST.get("horaFin")
-        if (not (horaInicial is None)):
-            usuario.update(horarioIni=horaInicial)
-        if (not (horaFinal is None)):
-            usuario.update(horarioFin=horaFinal)
-            # actualizar vendedores fijos
-        for p in Usuario.objects.raw('SELECT * FROM usuario'):
-            if p.tipo == 2:
-                hi = p.horarioIni
-                hf = p.horarioFin
-                horai = hi[:2]
-                horaf = hf[:2]
-                mini = hi[3:5]
-                minf = hf[3:5]
-                tiempo = str(datetime.datetime.now().time())
-                hora = tiempo[:2]
-                minutos = tiempo[3:5]
-                estado = ""
-                if horaf >= hora and hora >= horai:
-                    if horai == hora:
-                        if minf >= minutos and minutos >= mini:
-                            estado = "activo"
-                        else:
-                            estado = "inactivo"
-                    elif horaf == hora:
-                        if minf >= minutos and minutos >= mini:
-                            estado = "activo"
-                        else:
-                            estado = "inactivo"
-                    else:
-                        estado = "activo"
-                else:
-                    estado = "inactivo"
-                if estado == "activo":
-                    Usuario.objects.filter(nombre=p.nombre).update(activo=1)
-                else:
-                    Usuario.objects.filter(nombre=p.nombre).update(activo=0)
-    avatar = request.FILES.get("avatar")
-    formasDePago = ""
-    if not (request.POST.get("formaDePago0") is None) and request.POST.get("formaDePago0") != "":
-        formasDePago += '0,'
-    if not (request.POST.get("formaDePago1") is None) and request.POST.get("formaDePago1") != "":
-        formasDePago += '1,'
-    if not (request.POST.get("formaDePago2") is None) and request.POST.get("formaDePago2") != "":
-        formasDePago += '2,'
-    if not (request.POST.get("formaDePago3") is None) and request.POST.get("formaDePago3") != "":
-        formasDePago += '3,'
+    if tipo == "2":
+        hora_inicial = request.POST.get("horaIni")
+        hora_final = request.POST.get("horaFin")
+        if hora_inicial is not None:
+            usuario.vendedor.vendedorfijo.update(horarioIni=hora_inicial)
+        if hora_final is not None:
+            usuario.vendedor.vendedorfijo.update(horarioFin=hora_final)
 
-    if (nombre is not None and nombre != ""):
-        usuario.update(nombre=nombre)
-    if (formasDePago != ""):
-        usuario.update(formasDePago=formasDePago[:-1])
-    if (avatar is not None and avatar != ""):
+    # actualizar vendedores fijos
+    for v in Vendedor.objects.all():
+        if v.tipo == 1:
+            vf = v.vendedorfijo
+            hora_local = time.localtime()
+            hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
+            if vf.hora_apertura <= hora_local <= vf.hora_clausura:
+                v.activo = 1
+            else:
+                v.activo = 0
+            v.save()
+
+    avatar = request.FILES.get("avatar")
+    formas_de_pago = ""
+    if request.POST.get("formaDePago0") is not None and request.POST.get("formaDePago0") != "":
+        formas_de_pago += '0,'
+    if request.POST.get("formaDePago1") is not None and request.POST.get("formaDePago1") != "":
+        formas_de_pago += '1,'
+    if request.POST.get("formaDePago2") is not None and request.POST.get("formaDePago2") != "":
+        formas_de_pago += '2,'
+    if request.POST.get("formaDePago3") is not None and request.POST.get("formaDePago3") != "":
+        formas_de_pago += '3,'
+
+    if nombre is not None and nombre != "":
+        usuario.user.update(nombre=nombre)
+    if formas_de_pago != "":
+        usuario.vendedor.update(formasDePago=formas_de_pago[:-1])
+    if avatar is not None and avatar != "":
         with default_storage.open('../media/avatars/' + str(avatar), 'wb+') as destination:
             for chunk in avatar.chunks():
                 destination.write(chunk)
         usuario.update(avatar='/avatars/' + str(avatar))
 
-    return redirigirEditar(id_vendedor, request)
+    return redirigir_editar(id_vendedor, request)
 
 
-def redirigirEditar(id_vendedor, request):
-    for usr in Usuario.objects.raw('SELECT * FROM usuario WHERE id == "' + str(id_vendedor) + '"'):
-        id = usr.id
-        nombre = usr.nombre
-        email = usr.email
-        tipo = usr.tipo
-        avatar = usr.avatar
-        activo = usr.activo
-        formasDePago = usr.formasDePago
-        horarioIni = usr.horarioIni
-        horarioFin = usr.horarioFin
-        favoritos = obtenerFavoritos(id_vendedor)
+def redirigir_editar(id_vendedor, request):
+    usr = Usuario.objects.get(id=id_vendedor)
 
-        request.session['id'] = id
-        request.session['nombre'] = nombre
-        request.session['formasDePago'] = formasDePago
-        request.session['avatar'] = str(avatar)
-        request.session['tipo'] = tipo
-        request.session['activo'] = activo
-        request.session['horarioIni'] = horarioIni
-        request.session['horarioFin'] = horarioFin
-        request.session['favoritos'] = favoritos
+    id_v = usr.id
+    nombre = usr.user.first_name
+    tipo = usr.tipo
+    avatar = usr.avatar
+    activo = usr.activo
+    formas_de_pago = usr.vendedor.formasDePago
+    horario_ini = ''
+    horario_fin = ''
+    if tipo == 2:
+        horario_ini = usr.vendedor.vendedorfijo.horarioIni
+        horario_fin = usr.vendedor.vendedorfijo.horarioFin
+    favoritos = obtener_favoritos(id_vendedor)
 
-        listaDeProductos = []
-        i = 0
-        url = ''
-        argumentos = {}
-        for producto in Comida.objects.raw('SELECT * FROM comida WHERE idVendedor = "' + str(id_vendedor) + '"'):
-            listaDeProductos.append([])
-            listaDeProductos[i].append(producto.nombre)
-            categoria = str(producto.categorias)
-            listaDeProductos[i].append(categoria)
-            listaDeProductos[i].append(producto.stock)
-            listaDeProductos[i].append(producto.precio)
-            listaDeProductos[i].append(producto.descripcion)
-            listaDeProductos[i].append(str(producto.imagen))
-            i += 1
+    request.session['id'] = id_v
+    request.session['nombre'] = nombre
+    request.session['formasDePago'] = formas_de_pago
+    request.session['avatar'] = str(avatar)
+    request.session['tipo'] = tipo
+    request.session['activo'] = activo
+    request.session['horarioIni'] = horario_ini
+    request.session['horarioFin'] = horario_fin
+    request.session['favoritos'] = favoritos
 
-        listaDeProductos = simplejson.dumps(listaDeProductos, ensure_ascii=False).encode('utf8')
-        request.session['listaDeProductos'] = str(listaDeProductos)
-        if (tipo == 2):
-            url = 'main/vendedor-fijo.html'
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "horarioIni": horarioIni, "horarioFin": horarioFin,
-                          "avatar": avatar, "listaDeProductos": listaDeProductos, "activo": activo,
-                          "formasDePago": formasDePago, "favoritos": favoritos}
-        elif (tipo == 3):
-            url = 'main/vendedor-ambulante.html'
-            argumentos = {"nombre": nombre, "tipo": tipo, "id": id, "avatar": avatar,
-                          "listaDeProductos": listaDeProductos,
-                          "activo": activo, "formasDePago": formasDePago, "favoritos": favoritos}
+    lista_de_productos = []
+    i = 0
+    for producto in Comida.objects.filter(vendedor=usr.vendedor):
+        lista_de_productos.append([])
+        lista_de_productos[i].append(producto.nombre)
+        categoria = str(producto.categorias)
+        lista_de_productos[i].append(categoria)
+        lista_de_productos[i].append(producto.stock)
+        lista_de_productos[i].append(producto.precio)
+        lista_de_productos[i].append(producto.descripcion)
+        lista_de_productos[i].append(str(producto.imagen))
+        i += 1
 
-        return render(request, url, argumentos)
+    lista_de_productos = simplejson.dumps(lista_de_productos, ensure_ascii=False).encode('utf8')
+    request.session['listaDeProductos'] = str(lista_de_productos)
+
+    url = ''
+    argumentos = {}
+    if tipo == 2:
+        url = 'main/vendedor-fijo.html'
+        argumentos = {"nombre": nombre, "tipo": tipo, "id": id_v, "horarioIni": horario_ini, "horarioFin": horario_fin,
+                      "avatar": avatar, "listaDeProductos": lista_de_productos, "activo": activo,
+                      "formasDePago": formas_de_pago, "favoritos": favoritos}
+    elif tipo == 3:
+        url = 'main/vendedor-ambulante.html'
+        argumentos = {"nombre": nombre, "tipo": tipo, "id": id_v, "avatar": avatar,
+                      "listaDeProductos": lista_de_productos,
+                      "activo": activo, "formasDePago": formas_de_pago, "favoritos": favoritos}
+
+    return render(request, url, argumentos)
 
 
 def inicio_alumno(request):
@@ -751,7 +771,7 @@ def inicio_alumno(request):
 
 
 @csrf_exempt
-def borrarProducto(request):
+def borrar_producto(request):
     if request.method == 'GET':
         if request.is_ajax():
             comida = request.GET.get('eliminar')
@@ -761,138 +781,142 @@ def borrarProducto(request):
 
 
 @csrf_exempt
-def editarProducto(request):
+def editar_producto(request):
     if request.method == 'POST':
         if request.is_ajax():
-            form = editarProductosForm(data=request.POST, files=request.FILES)
 
-            nombreOriginal = request.POST.get("nombreOriginal")
-            nuevoNombre = request.POST.get('nombre')
-            nuevoPrecio = (request.POST.get('precio'))
-            nuevoStock = (request.POST.get('stock'))
-            nuevaDescripcion = request.POST.get('descripcion')
-            nuevaCategoria = (request.POST.get('categoria'))
-            nuevaImagen = request.FILES.get("comida")
-            if nuevoPrecio != "":
-                Comida.objects.filter(nombre=nombreOriginal).update(precio=int(nuevoPrecio))
-            if nuevoStock != "":
-                Comida.objects.filter(nombre=nombreOriginal).update(stock=int(nuevoStock))
-            if nuevaDescripcion != "":
-                Comida.objects.filter(nombre=nombreOriginal).update(descripcion=nuevaDescripcion)
-            if nuevaCategoria != None:
-                Comida.objects.filter(nombre=nombreOriginal).update(categorias=(nuevaCategoria))
-            if nuevaImagen != None:
-                filename = nombreOriginal + ".jpg"
+            nombre_original = request.POST.get("nombreOriginal")
+            nuevo_nombre = request.POST.get('nombre')
+            nuevo_precio = (request.POST.get('precio'))
+            nuevo_stock = (request.POST.get('stock'))
+            nueva_descripcion = request.POST.get('descripcion')
+            nueva_categoria = (request.POST.get('categoria'))
+            nueva_imagen = request.FILES.get("comida")
+            if nuevo_precio != "":
+                Comida.objects.filter(nombre=nombre_original).update(precio=int(nuevo_precio))
+            if nuevo_stock != "":
+                Comida.objects.filter(nombre=nombre_original).update(stock=int(nuevo_stock))
+            if nueva_descripcion != "":
+                Comida.objects.filter(nombre=nombre_original).update(descripcion=nueva_descripcion)
+            if nueva_categoria is not None:
+                Comida.objects.filter(nombre=nombre_original).update(categorias=(nueva_categoria))
+            if nueva_imagen is not None:
+                filename = nombre_original + ".jpg"
                 with default_storage.open('../media/productos/' + filename, 'wb+') as destination:
-                    for chunk in nuevaImagen.chunks():
+                    for chunk in nueva_imagen.chunks():
                         destination.write(chunk)
-                Comida.objects.filter(nombre=nombreOriginal).update(imagen='/productos/' + filename)
+                Comida.objects.filter(nombre=nombre_original).update(imagen='/productos/' + filename)
 
-            if nuevoNombre != "":
-                if Comida.objects.filter(nombre=nuevoNombre).exists():
+            if nuevo_nombre != "":
+                if Comida.objects.filter(nombre=nuevo_nombre).exists():
                     data = {"respuesta": "repetido"}
                     return JsonResponse(data)
                 else:
-                    Comida.objects.filter(nombre=nombreOriginal).update(nombre=nuevoNombre)
+                    Comida.objects.filter(nombre=nombre_original).update(nombre=nuevo_nombre)
 
-            data = {"respuesta": nombreOriginal}
+            data = {"respuesta": nombre_original}
             return JsonResponse(data)
 
 
-def cambiarFavorito(request):
+def cambiar_favorito(request):
     if request.method == "GET":
         if request.is_ajax():
             favorito = request.GET.get('favorito')
             agregar = request.GET.get('agregar')
+
+            alumno = Usuario.objects.get(id=request.session['id'])
+            vendedor = Usuario.objects.get(id=favorito).vendedor
             if agregar == "si":
-                nuevoFavorito = Favoritos()
-                nuevoFavorito.alumno = request.session['id']
-                nuevoFavorito.vendedor = favorito
-                nuevoFavorito.save()
+                nuevo_favorito = Favoritos(alumno=alumno, vendedor=vendedor)
+                nuevo_favorito.save()
                 respuesta = {"respuesta": "si"}
             else:
-                Favoritos.objects.filter(idAlumno=request.session['id']).filter(idVendedor=favorito).delete()
+                Favoritos.objects.filter(alumno=alumno, vendedor=vendedor).delete()
                 respuesta = {"respuesta": "no"}
             return JsonResponse(respuesta)
 
-            # return render_to_response('main/baseAdmin.html', {'form':form,'test':test}, context_instance=RequestContext(request))
 
-
-def cambiarEstado(request):
+def cambiar_estado(request):
     if request.method == 'GET':
         if request.is_ajax():
             estado = request.GET.get('estado')
+
             id_vendedor = request.GET.get('id')
+            vendedor = Usuario.objects.get(id=id_vendedor).vendedor
+
             if estado == "true":
-                Usuario.objects.filter(id=id_vendedor).update(activo=True)
+                vendedor.update(activo=True)
             else:
-                Usuario.objects.filter(id=id_vendedor).update(activo=False)
+                vendedor.update(activo=False)
+
             data = {"estado": estado}
             return JsonResponse(data)
 
 
-def editarPerfilAlumno(request):
+def editar_perfil_alumno(request):
     avatar = request.session['avatar']
-    id = request.session['id']
+    id_user = request.session['id']
     nombre = request.session['nombre']
+    user = Usuario.objects.get(id=id_user)
+
     favoritos = []
     nombres = []
-    for fav in Favoritos.objects.raw("SELECT * FROM Favoritos"):
-        if id == fav.idAlumno:
-            favoritos.append(fav.idVendedor)
-            vendedor = Usuario.objects.filter(id=fav.idVendedor).get()
-            nombre = vendedor.nombre
-            nombres.append(nombre)
+    for fav in Favoritos.objects.filter(alumno=user):
+        favoritos.append(fav.vendedor.user.id)
+        nombre = fav.vendedor.user.user.first_name
+        nombres.append(nombre)
+
     return render(request, 'main/editar-perfil-alumno.html',
-                  {"id": id, "avatarSesion": avatar, "nombre": nombre, "favoritos": favoritos, "nombres": nombres,
+                  {"id": id_user, "avatarSesion": avatar, "nombre": nombre, "favoritos": favoritos, "nombres": nombres,
                    "nombresesion": request.session['nombre']})
 
 
-def procesarPerfilAlumno(request):
+def procesar_perfil_alumno(request):
     if request.method == "POST":
-        nombreOriginal = request.session['nombre']
-        nuevoNombre = request.POST.get("nombre")
+        nombre_original = request.session['nombre']
+        nuevo_nombre = request.POST.get("nombre")
         count = request.POST.get("switchs")
-        aEliminar = []
-        nuevaImagen = request.FILES.get("comida")
+        a_eliminar = []
+        nueva_imagen = request.FILES.get("comida")
+
+        id_user = request.session['id']
+        user = Usuario.objects.get(id=id_user)
+
         for i in range(int(count)):
             fav = request.POST.get("switch" + str(i))
             if fav != "":
-                aEliminar.append(fav)
+                a_eliminar.append(int(fav))
 
-        if nuevoNombre != "":
-            if Usuario.objects.filter(nombre=nuevoNombre).exists():
-                data = {"respuesta": "repetido"}
-                return JsonResponse(data)
-            Usuario.objects.filter(nombre=nombreOriginal).update(nombre=nuevoNombre)
+        if nuevo_nombre != "":
+            user.user.update(nombre=nuevo_nombre)
 
-        for i in aEliminar:
-            for fav in Favoritos.objects.raw("SELECT * FROM Favoritos"):
-                if request.session['id'] == fav.idAlumno:
-                    if int(i) == fav.idVendedor:
-                        Favoritos.objects.filter(idAlumno=request.session['id']).filter(idVendedor=int(i)).delete()
-        if nuevaImagen != None:
-            filename = nombreOriginal + ".jpg"
+        for id_fav in a_eliminar:
+            fav = Favoritos.objects.get(alumno=user, vendedor=Usuario.objects.get(id=id_fav).vendedor)
+            fav.delete()
+
+        if nueva_imagen is not None:
+            filename = nombre_original + ".jpg"
             with default_storage.open('../media/avatars/' + filename, 'wb+') as destination:
-                for chunk in nuevaImagen.chunks():
+                for chunk in nueva_imagen.chunks():
                     destination.write(chunk)
-            Usuario.objects.filter(id=request.session['id']).update(avatar='/avatars/' + filename)
+
+            user.update(avatar='/avatars/' + filename)
 
         return JsonResponse({"ejemplo": "correcto"})
 
 
 @csrf_exempt
-def borrarUsuario(request):
+def borrar_usuario(request):
     if request.method == 'GET':
         if request.is_ajax():
-            uID = request.GET.get('eliminar')
-            Usuario.objects.filter(id=uID).delete()
-            data = {"eliminar": uID}
+            u_id = request.GET.get('eliminar')
+            Usuario.objects.filter(id=u_id).delete()
+            data = {"eliminar": u_id}
             return JsonResponse(data)
 
 
 @csrf_exempt
-def agregarAvatar(request):
+def agregar_avatar(request):
     if request.is_ajax() or request.method == 'FILES':
         imagen = request.FILES.get("image")
         # nuevaImagen = Imagen(imagen=imagen)
@@ -900,28 +924,30 @@ def agregarAvatar(request):
         return HttpResponse("Success")
 
 
-def editarUsuarioAdmin(request):
+def editar_usuario_admin(request):
     if request.method == 'GET':
         nombre = request.GET.get("name")
         contraseña = request.GET.get('password')
         email = request.GET.get('email')
         avatar = request.GET.get('avatar')
-        userID = request.GET.get('userID')
+        user_id = request.GET.get('userID')
 
-        if email != None:
-            Usuario.objects.filter(id=userID).update(email=email)
-        if nombre != None:
-            Usuario.objects.filter(id=userID).update(nombre=nombre)
-        if contraseña != None:
-            Usuario.objects.filter(id=userID).update(contraseña=contraseña)
-        if avatar != None:
-            Usuario.objects.filter(id=userID).update(avatar=avatar)
+        user = Usuario.objects.get(id=user_id)
 
-        data = {"respuesta": userID}
+        if email is not None:
+            user.user.update(email=email)
+        if nombre is not None:
+            user.user.update(first_name=nombre)
+        if contraseña is not None:
+            user.user.set_password(contraseña)
+        if avatar is not None:
+            user.update(avatar=avatar)
+
+        data = {"respuesta": user_id}
         return JsonResponse(data)
 
 
-def editarUsuario(request):
+def editar_usuario(request):
     if request.method == 'GET':
 
         nombre = request.GET.get("name")
@@ -933,89 +959,94 @@ def editarUsuario(request):
         forma1 = request.GET.get('forma1')
         forma2 = request.GET.get('forma2')
         forma3 = request.GET.get('forma3')
-        horaIni = request.GET.get('horaIni')
-        horaFin = request.GET.get('horaFin')
-        userID = request.GET.get('userID')
+        hora_ini = request.GET.get('horaIni')
+        hora_fin = request.GET.get('horaFin')
+        user_id = request.GET.get('userID')
 
-        nuevaListaFormasDePago = ""
-        if (forma0 != None):
-            nuevaListaFormasDePago += "0"
-        if (forma1 != None):
-            if (len(nuevaListaFormasDePago) != 0):
-                nuevaListaFormasDePago += ",1"
+        nueva_lista_formas_de_pago = ""
+        if forma0 is not None:
+            nueva_lista_formas_de_pago += "0"
+        if forma1 is not None:
+            if len(nueva_lista_formas_de_pago) != 0:
+                nueva_lista_formas_de_pago += ",1"
             else:
-                nuevaListaFormasDePago += "1"
-        if (forma2 != None):
-            if (len(nuevaListaFormasDePago) != 0):
-                nuevaListaFormasDePago += ",2"
+                nueva_lista_formas_de_pago += "1"
+        if forma2 is not None:
+            if len(nueva_lista_formas_de_pago) != 0:
+                nueva_lista_formas_de_pago += ",2"
             else:
-                nuevaListaFormasDePago += "2"
-        if (forma3 != None):
-            if (len(nuevaListaFormasDePago) != 0):
-                nuevaListaFormasDePago += ",3"
+                nueva_lista_formas_de_pago += "2"
+        if forma3 is not None:
+            if len(nueva_lista_formas_de_pago) != 0:
+                nueva_lista_formas_de_pago += ",3"
             else:
-                nuevaListaFormasDePago += "3"
+                nueva_lista_formas_de_pago += "3"
 
-        litaFormasDePago = (
-            (0, 'Efectivo'),
-            (1, 'Tarjeta de Crédito'),
-            (2, 'Tarjeta de Débito'),
-            (3, 'Tarjeta Junaeb'),
-        )
-        if email != None:
-            Usuario.objects.filter(id=userID).update(email=email)
-        if nombre != None:
-            Usuario.objects.filter(id=userID).update(nombre=nombre)
-        if contraseña != None:
-            Usuario.objects.filter(id=userID).update(contraseña=contraseña)
-        if tipo != None:
-            Usuario.objects.filter(id=userID).update(tipo=tipo)
-        if avatar != None:
-            Usuario.objects.filter(id=userID).update(avatar=avatar)
-        if horaIni != None:
-            Usuario.objects.filter(id=userID).update(horarioIni=horaIni)
-        if horaFin != None:
-            Usuario.objects.filter(id=userID).update(horarioFin=horaFin)
+        user = Usuario.objects.get(id=user_id)
+        if email is not None:
+            user.user.update(email=email)
+        if nombre is not None:
+            user.user.update(first_name=nombre)
+        if contraseña is not None:
+            user.user.set_password(contraseña)
 
-        Usuario.objects.filter(id=userID).update(formasDePago=nuevaListaFormasDePago)
+        if tipo is not None:
+            user.update(tipo=tipo)
+        if avatar is not None:
+            user.update(avatar=avatar)
 
-        data = {"respuesta": userID}
+        if tipo == 2:
+            if hora_ini is not None:
+                user.vendedor.vendedorfijo.update(horarioIni=hora_ini)
+            if hora_fin is not None:
+                user.vendedor.vendedorfijo.update(horarioFin=hora_fin)
+            user.vendedor.update(formasDePago=nueva_lista_formas_de_pago)
+
+        if tipo == 2:
+            user.vendedor.update(formasDePago=nueva_lista_formas_de_pago)
+
+        data = {"respuesta": user_id}
         return JsonResponse(data)
 
 
-def registerAdmin(request):
-    tipo = request.POST.get("tipo")
+def register_admin(request):
     nombre = request.POST.get("nombre")
     email = request.POST.get("email")
     password = request.POST.get("password")
-    horaInicial = request.POST.get("horaIni")
-    horaFinal = request.POST.get("horaFin")
+
+    tipo = request.POST.get("tipo")
     avatar = request.FILES.get("avatar")
-    formasDePago = []
+
+    hora_inicial = request.POST.get("horaIni")
+    hora_final = request.POST.get("horaFin")
+    formas_de_pago = []
     if not (request.POST.get("formaDePago0") is None):
-        formasDePago.append(request.POST.get("formaDePago0"))
+        formas_de_pago.append(request.POST.get("formaDePago0"))
     if not (request.POST.get("formaDePago1") is None):
-        formasDePago.append(request.POST.get("formaDePago1"))
+        formas_de_pago.append(request.POST.get("formaDePago1"))
     if not (request.POST.get("formaDePago2") is None):
-        formasDePago.append(request.POST.get("formaDePago2"))
+        formas_de_pago.append(request.POST.get("formaDePago2"))
     if not (request.POST.get("formaDePago3") is None):
-        formasDePago.append(request.POST.get("formaDePago3"))
-    usuarioNuevo = Usuario(nombre=nombre, email=email, tipo=tipo, contraseña=password, avatar=avatar,
-                           formasDePago=formasDePago, horarioIni=horaInicial, horarioFin=horaFinal)
-    usuarioNuevo.save()
-    id = request.session['id']
+        formas_de_pago.append(request.POST.get("formaDePago3"))
+
+    user = User(first_name=nombre, email=email)
+    user.set_password(password)
+    usuario = Usuario(user=user, tipo=tipo, avatar=avatar)
+    usuario.save()
+
+    id_adm = request.session['id']
     email = request.session['email']
     avatar = request.session['avatar']
     nombre = request.session['nombre']
     contraseña = request.session['contraseña']
-    return adminPOST(id, avatar, email, nombre, contraseña, request)
+    return admin_post(id_adm, avatar, email, nombre, contraseña, request)
 
 
 @csrf_exempt
-def verificarEmail(request):
+def verificar_email(request):
     if request.is_ajax() or request.method == 'POST':
         email = request.POST.get("email")
-        if Usuario.objects.filter(email=email).exists():
+        if User.objects.filter(email=email).exists():
             data = {"respuesta": "repetido"}
             return JsonResponse(data)
         else:
@@ -1023,33 +1054,39 @@ def verificarEmail(request):
             return JsonResponse(data)
 
 
-def getStock(request):
+def get_stock(request):
     if request.method == "GET":
-        stock = request.GET.get("nombre")
-        for producto in Comida.objects.raw("SELECT * FROM Comida"):
-            if producto.nombre == request.GET.get("nombre"):
-                stock = producto.stock
+
+        nombre = request.GET.get("nombre")
+        comida = Comida.objects.get(nombre=nombre)
+        stock = comida.stock
+
         if request.GET.get("op") == "suma":
-            nuevoStock = stock + 1
-            Comida.objects.filter(nombre=request.GET.get("nombre")).update(stock=nuevoStock)
-        if request.GET.get("op") == "resta":
-            nuevoStock = stock - 1
+            nuevo_stock = stock + 1
+            comida.update(stock=nuevo_stock)
+
+        elif request.GET.get("op") == "resta":
+            nuevo_stock = stock - 1
             if stock == 0:
                 return JsonResponse({"stock": stock})
-            Comida.objects.filter(nombre=request.GET.get("nombre")).update(stock=nuevoStock)
+            comida.update(stock=nuevo_stock)
+
     return JsonResponse({"stock": stock})
 
 
-def createTransaction(request):
-    nombreProducto = request.GET.get("nombre")
+def create_transaction(request):
+    nombre_producto = request.GET.get("nombre")
     precio = 0
-    idVendedor = request.GET.get("idUsuario")
-    if Comida.objects.filter(nombre=nombreProducto).exists():
-        precio = Comida.objects.filter(nombre=nombreProducto).values('precio')[0]
-        listaAux = list(precio.values())
-        precio = listaAux[0]
+    id_vendedor = request.GET.get("idUsuario")
+    if Comida.objects.filter(nombre=nombre_producto).exists():
+        precio = Comida.objects.filter(nombre=nombre_producto).values('precio')[0]
+        lista_aux = list(precio.values())
+        precio = lista_aux[0]
     else:
         return HttpResponse('error message')
-    transaccionNueva = Transacciones(idVendedor=idVendedor, precio=precio, nombreComida=nombreProducto)
-    transaccionNueva.save()
+
+    v = Usuario.objects.get(id=id_vendedor).vendedor
+    transaccion_nueva = Transacciones(vendedor=v, precio=precio, nombreComida=nombre_producto,
+                                      fecha=datetime.date.today())
+    transaccion_nueva.save()
     return JsonResponse({"transaccion": "realizada"})

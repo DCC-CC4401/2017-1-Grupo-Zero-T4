@@ -59,7 +59,7 @@ class VendedorFijo(models.Model):
 class Comida(models.Model):
     vendedor = models.ForeignKey(Vendedor, on_delete=models.CASCADE)
 
-    nombre = models.CharField(max_length=200)
+    nombre = models.CharField(max_length=200, primary_key=True)
     descripcion = models.CharField(max_length=500)
     stock = models.PositiveSmallIntegerField(default=0)
     precio = models.PositiveSmallIntegerField(default=0)
@@ -112,7 +112,7 @@ class Transacciones(models.Model):
 
     nombreComida = models.CharField(max_length=200, blank=True, null=True)
     precio = models.IntegerField()
-    fecha = models.DateField(default=datetime.date.today())
+    fecha = models.DateField()# default=datetime.date.today()
 
     def __str__(self):
         return "%s: %s-%i" % (str(self.vendedor), self.nombreComida, self.precio)
