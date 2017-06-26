@@ -60,9 +60,10 @@
             var horarioIni = {{ horarioIni|safe }}
             var horarioFin = {{ horarioFin|safe }}
             var ubicacion = {{ ubicacion|safe }};
-            console.log(tipo)
+            console.log(nombre)
+            console.log(horarioIni)
 
-            for (var i=0; i<nombre.length; ++i) {
+            for (var i=0; i<nombre.length; i++) {
                 infoWindow = new google.maps.InfoWindow;
                 var pagos = '<p><i>Formas de pago:</i> ';
                 for(var pagoRaw in formasDePago[i]) {

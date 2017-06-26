@@ -27,7 +27,6 @@ def index(request):
     # lista de vendedores
     i = 0
     for v in Vendedor.objects.all():
-        print(i)
         Ini = ""
         Fin = ""
         if ((v.tipo==2) & (v.activo)):
@@ -37,12 +36,16 @@ def index(request):
             vendedoresAvatar.append(str(v.user.avatar))
             vendedoresPago.append(v.formasDePago)
             vendedoresUbicacion.append(v.ubicacion)
+            vendedoresIni.append(Ini)
+            vendedoresFin.append(Fin)
         if v.tipo == 1:
             vf = v.vendedorfijo
             hora_local = time.localtime()
             hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
-            ini = (str(vf.horarioIni))
-            fin = (str(vf.horarioFin))
+            Ini = (str(vf.horarioIni))
+            Fin = (str(vf.horarioFin))
+            vendedoresIni.append(Ini)
+            vendedoresFin.append(Fin)
             if vf.horarioIni <= hora_local <= vf.horarioFin:
                 v.activo = 1
                 vendedoresId.append(v.user.id)
@@ -55,8 +58,7 @@ def index(request):
                 v.activo = 0
             v.save()
         i=i+1
-        vendedoresIni.append(Ini)
-        vendedoresFin.append(Fin)
+
 
     nombre = simplejson.dumps(vendedoresNombre)
     tipo = simplejson.dumps(vendedoresTipo)
