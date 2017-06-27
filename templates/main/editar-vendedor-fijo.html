@@ -22,6 +22,7 @@
           <div class="z-depth-1 grey lighten-4 row" style="margin-left: 5%; margin-right: 5%; padding: 32px 48px 0px 48px; border: 1px solid #EEE;">
               <div class="row">
                  <form class="col s12 m12"  enctype="multipart/form-data" action="{% url 'editarDatos' %}" method="post">
+                     {% csrf_token %}
 
                      <!-- Id -->
                      <input type="hidden" name="id_vendedor" value="{{ id }}" id="id_vendedor">

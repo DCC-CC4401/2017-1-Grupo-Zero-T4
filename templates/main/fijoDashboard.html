@@ -132,15 +132,13 @@
 //variables
 
 var productosHoy = {{ productosHoy|safe }}
-var productos = {{ productos|safe }}//label
-//alert(productos);
-//alert(productosHoy);
-//alert(arreglo)
+var productos = {{ productos|safe }}
+
 var valores =[];
 for(var i = 0;i < productos.length; i++){
     valores[i]=0;
 }
-//alert(productos);
+
 //hacer match entre comidas vendidas hoy  y todas las comidas
 for(var i=0;i<productosHoy.length;i++){
     var nombre = productosHoy[i][0];
@@ -150,12 +148,8 @@ for(var i=0;i<productosHoy.length;i++){
     if(index!=-1){valores[index]=valor;}
 }
 
-//alert(valores);
-//alert(valores);
-
-
 //script del grafico
-    var ctx = document.getElementById('chartVentasHoy').getContext('2d');
+var ctx = document.getElementById('chartVentasHoy').getContext('2d');
 var myChart = new Chart(ctx, {
   type: 'bar',
   data: {

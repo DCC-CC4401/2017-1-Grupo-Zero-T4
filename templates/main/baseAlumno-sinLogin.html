@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- Compiled and minified CSS -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/css/materialize.min.css">
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <link rel="stylesheet" href="../static/style.css">
+
+    <!--Import jQuery before materialize.js-->
+    <script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+
+    <!-- Compiled and minified JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/materialize/0.98.1/js/materialize.min.js"></script>
+    <script src="http://materializecss.com/templates/starter-template/js/init.js"></script>
+
+    <nav class="top-nav">
+        <div class="nav-wrapper teal lighten-1">
+            <a href="#" class="brand-logo right"><img style="max-height: 65px!important;  padding: 8px 0!important;" class="circle" src="../static/img/logo.png"></a>
+          <div class="navbar-fixed">
+            <a href="#" data-activates="slide-out"
+               class="left button-collapse btn-floating btn-large waves-effect waves-light"><i
+                    class="material-icons">menu</i></a>
+            <a class="center page-title"></a>
+          </div>
+            <ul id="slide-out" class="side-nav fixed leftside-navigation ps-container ps-active-y">
+                <li>
+                    <div class="userView">
+                  <div class="background" style="height:175px;">
+                    <img src="../static/img/background4.png">
+                  </div>
+                  <a href="#!user"><img style="margin-top: 16%;" class="circle" src="../static/img/AvatarPenguin.png"></a>
+                   <a href="#!name"><span style="margin-left: 5%;" class="white-text name">Invitado</span></a>
+                  <li><a href="{% url 'index' %}"><i class="material-icons">home</i>Inicio</a></li>
+                <li><a href="{% url 'login' %}"><i class="material-icons">account_circle</i>Iniciar Sesión</a></li>
+            </ul>
+        </div>
+    </nav>
+</head>
+
+{% block content %}
+    <div id="map"></div>
+
+    <script>
+        function initMap() {
+            var infoWindow;
+            var beau850 = {lat: -33.457785, lng: -70.663808};
+            var map = new google.maps.Map(document.getElementById('map'), {
+                zoom: 19,
+                center: beau850
+            });
+            var nombre = {{ nombre|safe }}
+            var tipo = {{ tipo|safe }}
+            var id = {{ id|safe }}
+            var avatar = {{ avatar|safe }}
+            var formasDePago = {{ formasDePago|safe }}
+            var horarioIni = {{ horarioIni|safe }}
+            var horarioFin = {{ horarioFin|safe }}
+            var lat = {{ lat|safe }};
+            var long = {{ long|safe }};
+            console.log(nombre)
+            console.log(horarioIni)
+
+            for (var i=0; i<nombre.length; i++) {
+                infoWindow = new google.maps.InfoWindow;
+                var pagos = '<p><i>Formas de pago:</i> ';
+                for(var pagoRaw in formasDePago[i]) {
+                    var pagoStr;
+                    pago = parseInt(pagoRaw)
+                    if(pago==1){
+                        pagoStr = "Efectivo"
+                    }
+                    else if(pago==2){
+                        pagoStr = 'Tarjeta de Crédito'
+                    }
+                    else if(pago==3){
+                        pagoStr = 'Tarjeta de Débito'
+                    }
+                    else{
+                        pagoStr = 'Tarjeta Junaeb'
+                    }
+                    pagos = pagos + pagoStr + ", ";
+                }
+                pagos = pagos + "</p>"
+                var info = '<div id="content">' +
+                    '<div id="siteNotice">' +
+                    '</div>' +
+                    '<div><p style="float: left;"><img src="../static/media/' + avatar[i] +'" width="60" hspace="10"></p>' +
+                    '<h4>' + nombre[i] + '</h4></div>' +
+                    '<p style="color:#029500;"> Disponible</p>' +
+                    '<div id="bodyContent">' +
+                    '<p>Vendedores de almuerzo</p>'  +
+                    pagos;
+                if(tipo[i] == parseInt(1)){
+                    info = info + '<p><i>Horario:</i> ' + horarioIni[i] + " - " + horarioFin[i];
+                }
+
+                info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
+                    '</div>' +
+                    '</div>';
+                setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
+            }
+
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(function(position) {
+                    var pos = {
+                        lat: position.coords.latitude,
+                        lng: position.coords.longitude
+                    }
+                    map.setCenter(pos);
+                }, function() {
+                    handleLocationError(true, infoWindow, map.getCenter());
+                });
+            } else {
+                // Browser doesn't support Geolocation
+                handleLocationError(false, infoWindow, map.getCenter());
+            }
+        }
+
+        function setMarker(info, map, lat, lng){
+            var marker3 = new google.maps.Marker({
+                position: {lat: lat, lng: lng},
+                map: map
+            });
+            marker3.info = new google.maps.InfoWindow({
+                content: info,
+                maxWidth: 400
+            });
+            marker3.addListener('click', function () {
+                marker3.info.open(map, marker3);
+            });
+        }
+
+        function handleLocationError(browserHasGeolocation, infoWindow, pos) {
+            infoWindow.setPosition(pos);
+            infoWindow.setContent(browserHasGeolocation ?
+                'Error: The Geolocation service failed.' :
+                'Error: Your browser doesn\'t support geolocation.');
+            infoWindow.open(map);
+        }
+    </script>
+    <script async defer
+            src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpv6y7hZkG3LxrBI0yfB16nh6NlSfv46M&callback=initMap">
+    </script>
+
+
+
+
+
+
+
+
+
+    <main>
+    <div class="container">
+        <div class='row'></div>
+        <div class='row'>
+            <p id="forms">
+        </div>
+    </div>
+
+    <script>
+        function vendedor(i){
+            var form = form + "<form method='post' action='{% url 'vistaVendedorPorAlumnoSinLogin' %}' id='vendedor" + i + "'> {% csrf_token %}"
+                form = form + "<input type='hidden' name='id' id='id' value ='"+ i +"' ></form>"
+            document.getElementById("forms").innerHTML=form
+            document.getElementById("vendedor"+i).submit();
+        }
+    </script>
+
+
+
+
+    </main>
+{% endblock %}
