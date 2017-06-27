@@ -33,7 +33,7 @@ def index(request):
         if v.tipo == 2 and v.activo:
             vendedores_id.append(v.user.id)
             vendedores_tipo.append(v.tipo)
-            vendedores_nombre.append(v.user.user.username)
+            vendedores_nombre.append(v.user.user.first_name)
             vendedores_avatar.append(str(v.user.avatar))
             vendedores_pago.append(v.formasDePago)
             vendedores_lat.append(v.lat)
@@ -50,7 +50,7 @@ def index(request):
                 v.activo = 1
                 vendedores_id.append(v.user.id)
                 vendedores_tipo.append(v.tipo)
-                vendedores_nombre.append(v.user.user.username)
+                vendedores_nombre.append(v.user.user.first_name)
                 vendedores_avatar.append(str(v.user.avatar))
                 vendedores_pago.append(v.formasDePago)
                 vendedores_lat.append(v.lat)
@@ -603,8 +603,8 @@ def vista_vendedor_por_alumno(request):
             url = 'main/vendedor-ambulante-vistaAlumno.html'
         if tipo == 2:
             url = 'main/vendedor-fijo-vistaAlumno.html'
-            horario_ini = v.vendedor.horarioIni.strftime("%H:%M")
-            horario_fin = v.vendedor.horarioFin.strftime("%H:%M")
+            horario_ini = v.vendedor.vendedorfijo.horarioIni.strftime("%H:%M")
+            horario_fin = v.vendedor.vendedorfijo.horarioFin.strftime("%H:%M")
 
         # obtener alimentos
         i = 0
@@ -627,7 +627,6 @@ def vista_vendedor_por_alumno(request):
                        "favorito": favorito, "formasDePago": formas_de_pago, "horarioIni": horario_ini,
                        "horarioFin": horario_fin, })
 
-    # TODO: redirigir a index
     return None
 
 
@@ -843,7 +842,7 @@ def inicio_alumno(request):
         if v.tipo == 2 and v.activo:
             vendedores_id.append(v.user.id)
             vendedores_tipo.append(v.tipo)
-            vendedores_nombre.append(v.user.user.username)
+            vendedores_nombre.append(v.user.user.first_name)
             vendedores_avatar.append(str(v.user.avatar))
             vendedores_pago.append(v.formasDePago)
             vendedores_lat.append(v.lat)
@@ -862,7 +861,7 @@ def inicio_alumno(request):
                 v.activo = 1
                 vendedores_id.append(v.user.id)
                 vendedores_tipo.append(v.tipo)
-                vendedores_nombre.append(v.user.user.username)
+                vendedores_nombre.append(v.user.user.first_name)
                 vendedores_avatar.append(str(v.user.avatar))
                 vendedores_pago.append(v.formasDePago)
                 vendedores_lat.append(v.lat)

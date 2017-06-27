@@ -95,7 +95,6 @@
                     '<p style="color:#029500;"> Disponible</p>' +
                     '<div id="bodyContent">' +
                     '<p>Vendedores de almuerzo</p>' +
-                    '<p><i>Menú de hoy:</i> Lasaña</p>' +
                     pagos;
                 if(tipo[i] == parseInt(1)){
                     info = info + '<p><i>Horario:</i> ' + horarioIni[i] + " - " + horarioFin[i];
@@ -173,7 +172,7 @@
 
         <script>
             function vendedor(i){
-                var form = form + "<form method='post' action='{% url 'vistaVendedorPorAlumnoSinLogin' %}' id='vendedor" + i + "'> {% csrf_token %}"
+                var form = form + "<form method='post' action='{% url 'vistaVendedorPorAlumno' %}' id='vendedor" + i + "'> {% csrf_token %}"
                 form = form + "<input type='hidden' name='id' id='id' value ='"+ i +"' ></form>"
                 document.getElementById("forms").innerHTML=form
                 document.getElementById("vendedor"+i).submit();
