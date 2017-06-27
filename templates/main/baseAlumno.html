@@ -62,7 +62,8 @@
             var horarioIni = {{ horarioIni|safe }}
             var horarioFin = {{ horarioFin|safe }}
             var lat = {{ lat|safe }};
-            var long = {{ long|safe }}
+            var long = {{ long|safe }};
+            var fav = {{ favoritos|safe }};
             console.log(nombre)
             console.log(horarioIni)
 
@@ -103,7 +104,12 @@
                 info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
-                setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
+                if(parseInt(fav[i])==1){
+                    setFavMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
+                }else{
+                    setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
+                }
+
 
                 /*var infoVendedor = new google.maps.InfoWindow({
                  content: info,
@@ -135,6 +141,21 @@
                 // Browser doesn't support Geolocation
                 handleLocationError(false, infoWindow, map.getCenter());
             }
+        }
+
+        function setFavMarker(info, map, lat, lng){
+            var marker3 = new google.maps.Marker({
+                position: {lat: lat, lng: lng},
+                map: map,
+                icon: '../static/img/star.png'
+            });
+            marker3.info = new google.maps.InfoWindow({
+                content: info,
+                maxWidth: 400
+            });
+            marker3.addListener('click', function () {
+                marker3.info.open(map, marker3);
+            });
         }
 
         function setMarker(info, map, lat, lng){

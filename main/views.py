@@ -9,6 +9,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
 from django.contrib.auth import authenticate, login, logout
+from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import GestionProductosForm
 from .forms import LoginForm
@@ -356,7 +357,7 @@ def login_req(request):
             if v.tipo == 2 and v.activo:
                 vendedores_id.append(v.user.id)
                 vendedores_tipo.append(v.tipo)
-                vendedores_nombre.append(v.user.user.username)
+                vendedores_nombre.append(v.user.user.first_name)
                 vendedores_avatar.append(str(v.user.avatar))
                 vendedores_pago.append(v.formasDePago)
                 vendedores_lat.append(v.lat)
@@ -375,7 +376,7 @@ def login_req(request):
                     v.activo = 1
                     vendedores_id.append(v.user.id)
                     vendedores_tipo.append(v.tipo)
-                    vendedores_nombre.append(v.user.user.username)
+                    vendedores_nombre.append(v.user.user.first_name)
                     vendedores_avatar.append(str(v.user.avatar))
                     vendedores_pago.append(v.formasDePago)
                     vendedores_lat.append(v.lat)
@@ -821,9 +822,11 @@ def redirigir_editar(id_vendedor, request):
 def inicio_alumno(request):
     id_user = request.session['id']
     avatarUser = None
+    usuario = None
     for p in Usuario.objects.all():
         if p.id == id_user:
             avatarUser = p.avatar
+            usuario = p
 
     vendedores_id = []
     vendedores_tipo = []
@@ -834,11 +837,18 @@ def inicio_alumno(request):
     vendedores_fin = []
     vendedores_lat = []
     vendedores_long = []
+    favoriteado = []
     # lista de vendedores
     i = 0
     for v in Vendedor.objects.all():
         ini = ""
         fin = ""
+        try:
+            Favoritos.objects.get(alumno=usuario, vendedor = v)
+        except ObjectDoesNotExist :
+            favoriteado.append(0)
+        else:
+            favoriteado.append(1)
         if v.tipo == 2 and v.activo:
             vendedores_id.append(v.user.id)
             vendedores_tipo.append(v.tipo)
@@ -880,12 +890,13 @@ def inicio_alumno(request):
     horario_fin = simplejson.dumps(vendedores_fin)
     lat = simplejson.dumps(vendedores_lat)
     long = simplejson.dumps(vendedores_long)
+    favoritos = simplejson.dumps(favoriteado)
 
     return render(request, 'main/baseAlumno.html',
                   {"userid": id_user, "avatarSesion": avatarUser,
                    "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": id,
                    "avatar": avatar, "formasDePago": formas_de_pago, "horarioIni": horario_ini,
-                   "horarioFin": horario_fin, "lat": lat, "long": long})
+                   "horarioFin": horario_fin, "lat": lat, "long": long, "favoritos": favoritos})
 
 
 @csrf_exempt
