@@ -23,7 +23,9 @@ class Usuario(models.Model):
 class Vendedor(models.Model):
     user = models.OneToOneField(Usuario, on_delete=models.CASCADE)
 
-    ubicacion = models.CharField(max_length=60)
+    lat = models.IntegerField(null=True)
+    long = models.IntegerField(null=True)
+
     activo = models.BooleanField(default=False, blank=True)
     listaFormasDePago = (
         (0, 'Efectivo'),
@@ -112,7 +114,7 @@ class Transacciones(models.Model):
 
     nombreComida = models.CharField(max_length=200, blank=True, null=True)
     precio = models.IntegerField()
-    fecha = models.DateField()# default=datetime.date.today()
+    fecha = models.DateField()  # default=datetime.date.today()
 
     def __str__(self):
         return "%s: %s-%i" % (str(self.vendedor), self.nombreComida, self.precio)

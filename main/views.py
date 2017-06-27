@@ -23,7 +23,8 @@ def index(request):
     vendedores_pago = []
     vendedores_ini = []
     vendedores_fin = []
-    vendedores_ubicacion = []
+    vendedores_lat = []
+    vendedores_long = []
     # lista de vendedores
     i = 0
     for v in Vendedor.objects.all():
@@ -35,7 +36,8 @@ def index(request):
             vendedores_nombre.append(v.user.user.username)
             vendedores_avatar.append(str(v.user.avatar))
             vendedores_pago.append(v.formasDePago)
-            vendedores_ubicacion.append(v.ubicacion)
+            vendedores_lat.append(v.lat)
+            vendedores_long.append(v.long)
             vendedores_ini.append(ini)
             vendedores_fin.append(fin)
         if v.tipo == 1:
@@ -53,7 +55,8 @@ def index(request):
                 vendedores_nombre.append(v.user.user.username)
                 vendedores_avatar.append(str(v.user.avatar))
                 vendedores_pago.append(v.formasDePago)
-                vendedores_ubicacion.append(v.ubicacion)
+                vendedores_lat.append(v.lat)
+                vendedores_long.append(v.long)
             else:
                 v.activo = 0
             v.save()
@@ -66,11 +69,12 @@ def index(request):
     formas_de_pago = simplejson.dumps(vendedores_pago)
     horario_ini = simplejson.dumps(vendedores_ini)
     horario_fin = simplejson.dumps(vendedores_fin)
-    ubicacion = simplejson.dumps(vendedores_ubicacion)
+    lat = simplejson.dumps(vendedores_lat)
+    long = simplejson.dumps(vendedores_long)
 
     return render(request, 'main/baseAlumno-sinLogin.html',
                   {"nombre": nombre, "tipo": tipo, "id": ids, "avatar": avatar, "formasDePago": formas_de_pago,
-                   "horarioIni": horario_ini, "horarioFin": horario_fin, "ubicacion": ubicacion})
+                   "horarioIni": horario_ini, "horarioFin": horario_fin, "lat": lat, "long": long})
 
 
 def login_form(request):
@@ -177,11 +181,11 @@ def ambulante_dashboard(request):
 def admin_edit(request):
     nombre = request.POST.get("adminName")
     contraseña = request.POST.get("adminPassword")
-    id = request.POST.get("adminId")
+    id_adm = request.POST.get("adminId")
     email = request.POST.get("adminEmail")
     avatar = request.POST.get("adminAvatar")
     return render(request, 'main/adminEdit.html',
-                  {"nombre": nombre, "contraseña": contraseña, "id": id, "email": email, "avatar": avatar})
+                  {"nombre": nombre, "contraseña": contraseña, "id": id_adm, "email": email, "avatar": avatar})
 
 
 def signup(request):
@@ -264,7 +268,6 @@ def login_req(request):
         vendedores = []
 
         user = authenticate(request, username=email, password=password)
-        print(user)
         if user is not None:
             login(request, user)
             usuario = user.usuario
@@ -772,7 +775,8 @@ def inicio_alumno(request):
     vendedores_pago = []
     vendedores_ini = []
     vendedores_fin = []
-    vendedores_ubicacion = []
+    vendedores_lat = []
+    vendedores_long = []
     # lista de vendedores
     i = 0
     for v in Vendedor.objects.all():
@@ -784,7 +788,8 @@ def inicio_alumno(request):
             vendedores_nombre.append(v.user.user.username)
             vendedores_avatar.append(str(v.user.avatar))
             vendedores_pago.append(v.formasDePago)
-            vendedores_ubicacion.append(v.ubicacion)
+            vendedores_lat.append(v.lat)
+            vendedores_long.append(v.long)
             vendedores_ini.append(ini)
             vendedores_fin.append(fin)
         if v.tipo == 1:
@@ -802,7 +807,8 @@ def inicio_alumno(request):
                 vendedores_nombre.append(v.user.user.username)
                 vendedores_avatar.append(str(v.user.avatar))
                 vendedores_pago.append(v.formasDePago)
-                vendedores_ubicacion.append(v.ubicacion)
+                vendedores_lat.append(v.lat)
+                vendedores_long.append(v.long)
             else:
                 v.activo = 0
             v.save()
