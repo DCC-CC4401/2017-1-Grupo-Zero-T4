@@ -61,7 +61,8 @@
             var formasDePago = {{ formasDePago|safe }}
             var horarioIni = {{ horarioIni|safe }}
             var horarioFin = {{ horarioFin|safe }}
-            var ubicacion = {{ ubicacion|safe }};
+            var lat = {{ lat|safe }};
+            var long = {{ long|safe }};
             console.log(nombre)
             console.log(horarioIni)
 
@@ -86,7 +87,6 @@
                     pagos = pagos + pagoStr + ", ";
                 }
                 pagos = pagos + "</p>"
-                var posicion = ubicacion[i].split(";")
                 var info = '<div id="content">' +
                     '<div id="siteNotice">' +
                     '</div>' +
@@ -104,7 +104,7 @@
                 info = info +'<p style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
-                setMarker(info, map, parseInt(posicion[0]), parseInt(posicion[1]))
+                setMarker(info, map, parseInt(lat[i]), parseInt(long[i]))
 
                 /*var infoVendedor = new google.maps.InfoWindow({
                  content: info,
@@ -163,62 +163,23 @@
     <script async defer
             src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCpv6y7hZkG3LxrBI0yfB16nh6NlSfv46M&callback=initMap">
     </script>
-    <!--main>
-    <div class="container">
-        <div class='row'></div>
-        <div class='row'>
-            <form method="post" action="{% url 'vistaVendedorPorAlumno' %}" id="form-vendedor-1"> {% csrf_token %}
-                <script>
-                var vendedor = {{ vendedores|safe }}
-                var vendedor1 = vendedor[0];
-                document.write("<input type='hidden' name='id' id='id' value ='"+ vendedor1 +"' >" )
-            </script>
-            </form>
+    <main>
+        <div class="container">
+            <div class='row'></div>
+            <div class='row'>
+                <p id="forms">
+            </div>
         </div>
-        <div class='row'>
-            <form method="post" action="{% url 'vistaVendedorPorAlumno' %}" id="form-vendedor-2"> {% csrf_token %}
-                <script>
-                    var vendedor = {{ vendedores|safe }}
-                    var vendedor2 = vendedor[1];
-                    document.write("<input type='hidden' name='id' id='id' value ='"+ vendedor2 +"' >" );
-                </script>
-            </form>
-        </div>
-    </div>
 
-
-    <div class='row'>
-    <div class = "col s12 m12 l12">
-    <img class='activator responsive-img center-block' src="../static/media/mapa.png" alt="Planets" usemap="#vendedoresMap">
-        <map name="vendedoresMap">
-          <area shape="circle" coords="555,233,25" id="vendedor1" onclick="vendedor1();">
-          <area shape="circle" coords="501,337,25" id="vendedor2" onclick="vendedor2();">
-        </map>
-     </div>
-     </div>
-
-
-    <script>
-        function vendedor1() {
-            document.getElementById("form-vendedor-1").submit();
-        }
-    </script>
-
-    <script>
-        function vendedor2() {
-            document.getElementById("form-vendedor-2").submit();
-        }
-    </script>
-
-    <script>
-        $(document).ready(function() {
-            $('map').imageMapResize();
-        });
-    </script>
-    <script type="text/javascript" src="../static/js/imageMapResizer.min.js"></script>
-
-
-    </main-->
+        <script>
+            function vendedor(i){
+                var form = form + "<form method='post' action='{% url 'vistaVendedorPorAlumnoSinLogin' %}' id='vendedor" + i + "'> {% csrf_token %}"
+                form = form + "<input type='hidden' name='id' id='id' value ='"+ i +"' ></form>"
+                document.getElementById("forms").innerHTML=form
+                document.getElementById("vendedor"+i).submit();
+            }
+        </script>
+    </main>
 
 
 

@@ -59,7 +59,8 @@
             var formasDePago = {{ formasDePago|safe }}
             var horarioIni = {{ horarioIni|safe }}
             var horarioFin = {{ horarioFin|safe }}
-            var ubicacion = {{ ubicacion|safe }};
+            var lat = {{ lat|safe }};
+            var long = {{ long|safe }};
             console.log(nombre)
             console.log(horarioIni)
 
@@ -84,7 +85,6 @@
                     pagos = pagos + pagoStr + ", ";
                 }
                 pagos = pagos + "</p>"
-                var posicion = ubicacion[i].split(";")
                 var info = '<div id="content">' +
                     '<div id="siteNotice">' +
                     '</div>' +
@@ -102,7 +102,7 @@
                 info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
-                setMarker(info, map, parseInt(posicion[0]), parseInt(posicion[1]))
+                setMarker(info, map, parseInt(lat[i]), parseInt(long[i]))
             }
 
             if (navigator.geolocation) {

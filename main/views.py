@@ -821,12 +821,13 @@ def inicio_alumno(request):
     formas_de_pago = simplejson.dumps(vendedores_pago)
     horario_ini = simplejson.dumps(vendedores_ini)
     horario_fin = simplejson.dumps(vendedores_fin)
-    ubicacion = simplejson.dumps(vendedores_ubicacion)
+    lat = simplejson.dumps(vendedores_lat)
+    long = simplejson.dumps(vendedores_long)
 
     return render(request, 'main/baseAlumno.html',
                   {"userid": id_user, "avatarSesion": avatarUser,
                    "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": ids, "avatar": avatar, "formasDePago": formas_de_pago,
-                   "horarioIni": horario_ini, "horarioFin": horario_fin, "ubicacion": ubicacion})
+                   "horarioIni": horario_ini, "horarioFin": horario_fin, "lat": lat, "long": long})
 
 
 @csrf_exempt
