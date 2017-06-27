@@ -339,6 +339,62 @@ def login_req(request):
 
         lista_de_productos = simplejson.dumps(lista_de_productos, ensure_ascii=False).encode('utf8')
 
+        vendedores_id = []
+        vendedores_tipo = []
+        vendedores_nombre = []
+        vendedores_avatar = []
+        vendedores_pago = []
+        vendedores_ini = []
+        vendedores_fin = []
+        vendedores_lat = []
+        vendedores_long = []
+        # lista de vendedores
+        i = 0
+        for v in Vendedor.objects.all():
+            ini = ""
+            fin = ""
+            if v.tipo == 2 and v.activo:
+                vendedores_id.append(v.user.id)
+                vendedores_tipo.append(v.tipo)
+                vendedores_nombre.append(v.user.user.username)
+                vendedores_avatar.append(str(v.user.avatar))
+                vendedores_pago.append(v.formasDePago)
+                vendedores_lat.append(v.lat)
+                vendedores_long.append(v.long)
+                vendedores_ini.append(ini)
+                vendedores_fin.append(fin)
+            if v.tipo == 1:
+                vf = v.vendedorfijo
+                hora_local = time.localtime()
+                hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
+                ini = vf.horarioIni.strftime("%H:%M")
+                fin = vf.horarioFin.strftime("%H:%M")
+                vendedores_ini.append(ini)
+                vendedores_fin.append(fin)
+                if vf.horarioIni <= hora_local <= vf.horarioFin:
+                    v.activo = 1
+                    vendedores_id.append(v.user.id)
+                    vendedores_tipo.append(v.tipo)
+                    vendedores_nombre.append(v.user.user.username)
+                    vendedores_avatar.append(str(v.user.avatar))
+                    vendedores_pago.append(v.formasDePago)
+                    vendedores_lat.append(v.lat)
+                    vendedores_long.append(v.long)
+                else:
+                    v.activo = 0
+                v.save()
+            i = i + 1
+
+        nombres_v = simplejson.dumps(vendedores_nombre)
+        tipo_v = simplejson.dumps(vendedores_tipo)
+        ids = simplejson.dumps(vendedores_id)
+        avatar_v = simplejson.dumps(vendedores_avatar)
+        formas_de_pago_v = simplejson.dumps(vendedores_pago)
+        horario_ini = simplejson.dumps(vendedores_ini)
+        horario_fin = simplejson.dumps(vendedores_fin)
+        lat = simplejson.dumps(vendedores_lat)
+        long = simplejson.dumps(vendedores_long)
+
         # limpiar argumentos de salida segun tipo de vista
         argumentos = {"email": email, "tipo": tipo, "id": id_user, "vendedores": vendedores_json, "nombre": nombre,
                       "horarioIni": horario_ini, "horarioFin": horario_fin, "avatar": avatar,
@@ -347,8 +403,10 @@ def login_req(request):
             request.session['contraseña'] = contraseña
             return admin_post(id_user, avatar, email, nombre, contraseña, request)
         if tipo == 1:
-            argumentos = {"nombresesion": nombre, "tipo": tipo, "id": id_user, "vendedores": vendedores_json,
-                          "avatarSesion": avatar}
+            argumentos = {"nombresesion": nombre, "tipo": tipo, "vendedores": vendedores_json,
+                          "avatarSesion": avatar, "nombre": nombres_v, "tipo": tipo_v, "id": ids, "avatar": avatar_v,
+                          "formasDePago": formas_de_pago_v, "horarioIni": horario_ini, "horarioFin": horario_fin,
+                          "lat": lat, "long": long}
         if tipo == 2:
             request.session['listaDeProductos'] = str(lista_de_productos)
             request.session['favoritos'] = obtener_favoritos(id_user)
@@ -816,7 +874,7 @@ def inicio_alumno(request):
 
     nombre = simplejson.dumps(vendedores_nombre)
     tipo = simplejson.dumps(vendedores_tipo)
-    ids = simplejson.dumps(vendedores_id)
+    id = simplejson.dumps(vendedores_id)
     avatar = simplejson.dumps(vendedores_avatar)
     formas_de_pago = simplejson.dumps(vendedores_pago)
     horario_ini = simplejson.dumps(vendedores_ini)
@@ -826,8 +884,9 @@ def inicio_alumno(request):
 
     return render(request, 'main/baseAlumno.html',
                   {"userid": id_user, "avatarSesion": avatarUser,
-                   "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": ids, "avatar": avatar, "formasDePago": formas_de_pago,
-                   "horarioIni": horario_ini, "horarioFin": horario_fin, "lat": lat, "long": long})
+                   "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": id,
+                   "avatar": avatar, "formasDePago": formas_de_pago, "horarioIni": horario_ini,
+                   "horarioFin": horario_fin, "lat": lat, "long": long})
 
 
 @csrf_exempt
