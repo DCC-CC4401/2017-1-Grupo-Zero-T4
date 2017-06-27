@@ -101,7 +101,7 @@
                     info = info + '<p><i>Horario:</i> ' + horarioIni[i] + " - " + horarioFin[i];
                 }
 
-                info = info +'<p style="text-align: right;">Ver detalles»</p>' +
+                info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
                 setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
