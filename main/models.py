@@ -1,5 +1,3 @@
-import datetime
-
 from django.contrib.auth.models import User
 from django.db import models
 from multiselectfield import MultiSelectField
@@ -23,6 +21,7 @@ class Usuario(models.Model):
 class Vendedor(models.Model):
     user = models.OneToOneField(Usuario, on_delete=models.CASCADE)
 
+    # beauchef
     lat = models.DecimalField(max_digits=15, decimal_places=10, default=-33.457785)
     long = models.DecimalField(max_digits=20, decimal_places=10, default=-70.663808)
 
@@ -114,7 +113,7 @@ class Transacciones(models.Model):
 
     nombreComida = models.CharField(max_length=200, blank=True, null=True)
     precio = models.IntegerField()
-    fecha = models.DateField()  # default=datetime.date.today()
+    fecha = models.DateField()
 
     def __str__(self):
         return "%s: %s-%i" % (str(self.vendedor), self.nombreComida, self.precio)

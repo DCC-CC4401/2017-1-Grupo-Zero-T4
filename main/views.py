@@ -1,6 +1,8 @@
+import datetime
 import time
 
 import simplejson
+from django.contrib.auth import authenticate, login, logout
 from django.core.files.storage import default_storage
 from django.db.models import Count
 from django.db.models import Sum
@@ -8,7 +10,6 @@ from django.http import HttpResponse
 from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import authenticate, login, logout
 from django.core.exceptions import ObjectDoesNotExist
 
 from .forms import GestionProductosForm
