@@ -63,7 +63,7 @@
             var horarioFin = {{ horarioFin|safe }}
             var lat = {{ lat|safe }};
             var long = {{ long|safe }};
-            var fav = {{ favoritos|safe }};
+            var fav = {{ favs|safe }};
             console.log(nombre)
             console.log(horarioIni)
 
@@ -104,6 +104,7 @@
                 info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
+                console.log(fav[i])
                 if(parseInt(fav[i])==1){
                     setFavMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
                 }else{

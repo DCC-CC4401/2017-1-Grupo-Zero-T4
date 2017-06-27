@@ -328,6 +328,7 @@ def login_req(request):
         # obtener alimentos en caso de que sea vendedor fijo o ambulante
         if tipo == 2 or tipo == 3:
             i = 0
+
             for producto in Comida.objects.filter(vendedor=usuario.vendedor):
                 lista_de_productos.append([])
                 lista_de_productos[i].append(producto.nombre)
@@ -350,11 +351,19 @@ def login_req(request):
         vendedores_fin = []
         vendedores_lat = []
         vendedores_long = []
+        favoriteado = []
         # lista de vendedores
         i = 0
         for v in Vendedor.objects.all():
             ini = ""
             fin = ""
+            usuario = user.usuario
+            try:
+                Favoritos.objects.get(alumno=usuario, vendedor = v)
+            except ObjectDoesNotExist :
+                favoriteado.append(0)
+            else:
+                favoriteado.append(1)
             if v.tipo == 2 and v.activo:
                 vendedores_id.append(v.user.id)
                 vendedores_tipo.append(v.tipo)
@@ -396,6 +405,7 @@ def login_req(request):
         horario_fin = simplejson.dumps(vendedores_fin)
         lat = simplejson.dumps(vendedores_lat)
         long = simplejson.dumps(vendedores_long)
+        favoritos = simplejson.dumps(favoriteado)
 
         # limpiar argumentos de salida segun tipo de vista
         argumentos = {"email": email, "tipo": tipo, "id": id_user, "vendedores": vendedores_json, "nombre": nombre,
@@ -408,13 +418,13 @@ def login_req(request):
             argumentos = {"nombresesion": nombre, "tipo": tipo, "vendedores": vendedores_json,
                           "avatarSesion": avatar, "nombre": nombres_v, "tipo": tipo_v, "id": ids, "avatar": avatar_v,
                           "formasDePago": formas_de_pago_v, "horarioIni": horario_ini, "horarioFin": horario_fin,
-                          "lat": lat, "long": long}
+                          "lat": lat, "long": long, "favs": favoritos}
         if tipo == 2:
             request.session['listaDeProductos'] = str(lista_de_productos)
             request.session['favoritos'] = obtener_favoritos(id_user)
             argumentos = {"nombre": nombre, "tipo": tipo, "id": id_user, "horarioIni": horario_ini,
                           "favoritos": obtener_favoritos(id_user), "horarioFin": horario_fin, "avatar": avatar,
-                          "listaDeProductos": lista_de_productos, "activo": activo, "formasDePago": formas_de_pago}
+                          "listaDeProductos": lista_de_productos, "activo": activo, "formasDePago": formas_de_pago, }
         if tipo == 3:
             request.session['listaDeProductos'] = str(lista_de_productos)
             request.session['favoritos'] = obtener_favoritos(id_user)
@@ -897,7 +907,7 @@ def inicio_alumno(request):
                   {"userid": id_user, "avatarSesion": avatarUser,
                    "nombresesion": request.session['nombre'], "nombre": nombre, "tipo": tipo, "id": id,
                    "avatar": avatar, "formasDePago": formas_de_pago, "horarioIni": horario_ini,
-                   "horarioFin": horario_fin, "lat": lat, "long": long, "favoritos": favoritos})
+                   "horarioFin": horario_fin, "lat": lat, "long": long, "favs": favoritos})
 
 
 @csrf_exempt
