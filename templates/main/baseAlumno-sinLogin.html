@@ -63,6 +63,8 @@
             var long = {{ long|safe }};
             console.log(nombre)
             console.log(horarioIni)
+            console.log(lat)
+            console.log(long)
 
             for (var i=0; i<nombre.length; i++) {
                 infoWindow = new google.maps.InfoWindow;
@@ -102,7 +104,7 @@
                 info = info +'<p onclick="vendedor(' + id[i] + ')" style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
-                setMarker(info, map, parseInt(lat[i]), parseInt(long[i]))
+                setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
             }
 
             if (navigator.geolocation) {

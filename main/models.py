@@ -23,8 +23,8 @@ class Usuario(models.Model):
 class Vendedor(models.Model):
     user = models.OneToOneField(Usuario, on_delete=models.CASCADE)
 
-    lat = models.IntegerField(null=True)
-    long = models.IntegerField(null=True)
+    lat = models.DecimalField(max_digits=15, decimal_places=10, default=-33.457785)
+    long = models.DecimalField(max_digits=20, decimal_places=10, default=-70.663808)
 
     activo = models.BooleanField(default=False, blank=True)
     listaFormasDePago = (

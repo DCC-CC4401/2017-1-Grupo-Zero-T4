@@ -61,7 +61,7 @@
             var formasDePago = {{ formasDePago|safe }}
             var horarioIni = {{ horarioIni|safe }}
             var horarioFin = {{ horarioFin|safe }}
-            var lat = {{ lat|safe }}
+            var lat = {{ lat|safe }};
             var long = {{ long|safe }}
             console.log(nombre)
             console.log(horarioIni)
@@ -104,7 +104,7 @@
                 info = info +'<p style="text-align: right;">Ver detalles»</p>' +
                     '</div>' +
                     '</div>';
-                setMarker(info, map, parseInt(lat[i]), parseInt(long[i]))
+                setMarker(info, map, parseFloat(lat[i]), parseFloat(long[i]))
 
                 /*var infoVendedor = new google.maps.InfoWindow({
                  content: info,

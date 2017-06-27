@@ -46,8 +46,6 @@ def index(request):
             hora_local = datetime.time(hora_local.tm_hour, hora_local.tm_min)
             ini = vf.horarioIni.strftime("%H:%M")
             fin = vf.horarioFin.strftime("%H:%M")
-            vendedores_ini.append(ini)
-            vendedores_fin.append(fin)
             if vf.horarioIni <= hora_local <= vf.horarioFin:
                 v.activo = 1
                 vendedores_id.append(v.user.id)
@@ -57,6 +55,8 @@ def index(request):
                 vendedores_pago.append(v.formasDePago)
                 vendedores_lat.append(v.lat)
                 vendedores_long.append(v.long)
+                vendedores_ini.append(ini)
+                vendedores_fin.append(fin)
             else:
                 v.activo = 0
             v.save()
